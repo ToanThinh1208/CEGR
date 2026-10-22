@@ -105,7 +105,10 @@ class CegrRunner(BaseRunner):
         super().__init__(config)
         self.env = env
         self.method_name = method_name
-        self.task_desc = task_desc or TASK_DESC
+        default_task = TASK_DESC if isinstance(env, DoorKeyEnv) else ""
+        default_api = API_DESC if isinstance(env, DoorKeyEnv) else ""
+        self.task_desc = task_desc or config.get("task_desc", "") or default_task or TASK_DESC
+        self.api_desc = api_desc or config.get("api_desc", "") or default_api or API_DESC
         self.kit = build_kit(env) if isinstance(env, DoorKeyEnv) else build_metaworld_kit(env)
         self.gk = GateKeeper(env, self.kit)
 
@@ -122,8 +125,26 @@ class CegrRunner(BaseRunner):
             "probe_episodes": 1000,
             "probe_seeds": 2,
         }
+        # Pre-apply defaults for known ablation method names
+        if self.method_name == "CEGR_noPool":
+            self.cfg["pool"] = False
+        elif self.method_name == "CEGR_noAnchors":
+            self.cfg["anchors"] = "static"
+        elif self.method_name == "CEGR_noClass":
+            self.cfg["classify"] = False
+        elif self.method_name == "CEGR_noG2":
+            self.cfg["gates"] = [1, 3, 4, 5]
+        elif self.method_name == "CEGR_noG4":
+            self.cfg["gates"] = [1, 2, 3, 5]
+        elif self.method_name == "CEGR_noG5":
+            self.cfg["gates"] = [1, 2, 3, 4]
+
         if variant_cfg:
             self.cfg.update(variant_cfg)
+
+        # Ensure noAnchors strictly keeps v0 without upgrading per SYSTEM_LOGIC_SPEC.md Sec 2.4F
+        if self.method_name == "CEGR_noAnchors":
+            self.cfg["anchors"] = "static"
 
     def _build_prompt(
         self,
@@ -135,7 +156,7 @@ class CegrRunner(BaseRunner):
         persona: Optional[str] = None,
     ) -> List[Dict[str, str]]:
         system = "You are an expert in reinforcement learning reward design and formal verification."
-        blocks = [self.task_desc, self.api_desc]
+        blocks = [b for b in [self.task_desc, self.api_desc] if b]
         if self.cfg.get("anchors") != "none":
             blocks.append(anchors_mgr.render())
         if self.cfg.get("experience") and experience:
@@ -173,7 +194,7 @@ class CegrRunner(BaseRunner):
         seed_base = 1000 + (sample_idx % 10) * 80
         init_res = run_gatekeeper(current_code, self.cfg, pool, 0, self.env, self.kit, self.gk, seed=seed_base)
         rl_episodes += init_res["rl_episodes"]
-        best_cand = (init_res.get("gates_passed", 0), r0_code, 0)
+        best_cand: Optional[Tuple[int, str, int]] = None
         if init_res["passed"]:
             passed = True
             pass_round = 0
@@ -201,7 +222,7 @@ class CegrRunner(BaseRunner):
 
             # Track best candidate by gate depth; tie-break by latest round
             g_depth = res.get("gates_passed", 0)
-            if g_depth >= 1 and g_depth >= best_cand[0]:
+            if g_depth >= 1 and (best_cand is None or g_depth >= best_cand[0]):
                 best_cand = (g_depth, current_code, rnd)
 
             recur = count_recurrence(self.env, self.kit, res.get("table"), seen_ce)
@@ -242,7 +263,7 @@ class CegrRunner(BaseRunner):
         if passed:
             final_code = current_code
         else:
-            final_code = best_cand[1] if best_cand[0] >= 1 else r0_code
+            final_code = best_cand[1] if best_cand is not None else r0_code
 
         # Independent Oracle Verified Fix Evaluation
         orig_an = analyze(self.env, r0_code, cache_table=True) if isinstance(self.env, DoorKeyEnv) else None
@@ -348,8 +369,6 @@ class CegrRunner(BaseRunner):
                     jb["waves"].append({"wave": 0, "passed": True, "failed_gate": None, "gates_passed": g_depth, "recur": 0})
                 else:
                     jb["feedback"] = build_feedback(init_res, self.cfg, jb["pool"], self.env, self.kit)
-                    if g_depth >= 1:
-                        jb["best"] = (jb["code"], g_depth, 0)
 
         for w in range(1, self.max_rounds + 1):
             active = [jb for jb in jobs if not jb["done"]]
@@ -381,7 +400,7 @@ class CegrRunner(BaseRunner):
                 jb["rl_runs"] += res["rl_runs"]
                 jb["rl_episodes"] += res["rl_episodes"]
 
-                recur = count_recurrence(self.env, self.kit, res["table"], jb["seen"])
+                recur = count_recurrence(self.env, self.kit, res.get("table"), jb["seen"])
                 if res.get("obs"):
                     for c in res["obs"].get("p0_viol_all", []) + res["obs"].get("attack", []):
                         jb["seen"].setdefault(c["key"], c)
