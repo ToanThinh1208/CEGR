@@ -104,6 +104,25 @@ def signal_eps(ret_succ: float, eps_abs: float = 1e-3, eps_rel: float = 0.02) ->
     return max(eps_abs, eps_rel * abs(ret_succ))
 
 
+def count_recurrence(env: Any, table: Any, seen: Dict[str, Any], refs: Optional[Dict[str, Any]] = None) -> int:
+    """
+    Calculates number of previously encountered counterexamples violated by candidate table.
+    Evaluated post-hoc using 'margin' mode according to Section 3 and Section 7.8 of SYSTEM_LOGIC_SPEC.
+    """
+    if table is None or not seen:
+        return 0
+    from cegr.envs.doorkey import DoorKeyEnv, traj_return
+    if isinstance(env, DoorKeyEnv) and refs and "T3" in refs and hasattr(table, "R"):
+        ret_t3 = traj_return(env, table, refs["T3"])
+    else:
+        ret_t3 = 1.0
+    eps = max(1e-3, 0.02 * abs(ret_t3))
+    return sum(
+        1 for c in seen.values()
+        if pair_violated(pair_margin(env, table, c), c, eps, True, mode="margin", env=env, table=table)
+    )
+
+
 class TPEEvaluator:
     """
     Shared Trajectory Preference Evaluation (TPE) algorithm for CARD, CARD_REFL, and CEGR (Gate G3).

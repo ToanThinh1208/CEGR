@@ -41,6 +41,7 @@ class OrigRunner(BaseRunner):
             "llm_calls": 0,
             "rl_runs": 1,
             "rl_episodes": 2500,
+            "recurrence_count": 0,
             "vf": bool(ev["verified_fix"]),
             "tier1_safe": bool(ev["tier1_safe_aligned"]),
             "loose_dp": bool(ev["loose_dp"]),

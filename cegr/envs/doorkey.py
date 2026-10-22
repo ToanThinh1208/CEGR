@@ -266,13 +266,13 @@ def replay(env: DoorKeyEnv, actions: List[int]) -> Tuple[List[int], List[int], b
     return idxs, used, reached
 
 
-def traj_return(env: DoorKeyEnv, table: Any, actions: List[int]) -> float:
+def traj_return(env: DoorKeyEnv, table: Any, actions: List[int], gamma: float = 1.0) -> float:
     i, tot = 0, 0.0
-    for a in actions:
+    for t, a in enumerate(actions):
         if env.terminal[i]:
             break
         a = int(a)
-        tot += float(table.R[i, a])
+        tot += (gamma ** t) * float(table.R[i, a])
         g = bool(env.goal_flag[i, a])
         i = int(env.nxt[i, a])
         if g:

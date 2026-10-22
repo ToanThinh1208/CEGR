@@ -75,7 +75,7 @@ def count_recurrence(env: Any, kit: Any, table: Any, seen: Dict[str, Any]) -> in
     eps = max(1e-3, 0.02 * abs(ret_t3))
     return sum(
         1 for c in seen.values()
-        if pair_violated(pair_margin(env, table, c), c, eps, True)
+        if pair_violated(pair_margin(env, table, c), c, eps, True, mode="margin", env=env, table=table)
     )
 
 
@@ -256,6 +256,9 @@ class CegrRunner(BaseRunner):
             new_an=new_an,
         )
 
+        final_table = new_an.table if (new_an and new_an.table) else self.gk.get_table(final_code)[0]
+        post_hoc_recur = count_recurrence(self.env, self.kit, final_table, seen_ce)
+
         return {
             "job_id": f"{self.method_name.lower()}__{reward_record['id']}__s{sample_idx}",
             "reward_id": reward_record["id"],
@@ -267,7 +270,7 @@ class CegrRunner(BaseRunner):
             "rounds_to_pass": pass_round if passed else self.max_rounds + 1,
             "llm_calls": llm_calls,
             "architect_calls": 0,
-            "recurrence_count": total_recur,
+            "recurrence_count": post_hoc_recur,
             "rl_runs": 1,
             "rl_episodes": rl_episodes,
             "vf": bool(ev["verified_fix"]),
@@ -435,7 +438,8 @@ class CegrRunner(BaseRunner):
                 run_probe=True,
                 new_an=new_an,
             )
-            total_job_recur = sum(wv.get("recur", 0) for wv in jb["waves"])
+            final_table = new_an.table if (new_an and new_an.table) else self.gk.get_table(final_code)[0]
+            post_hoc_recur = count_recurrence(self.env, self.kit, final_table, jb["seen"])
             final_results.append({
                 "job_id": jb["job_id"],
                 "reward_id": jb["start"]["id"],
@@ -447,7 +451,7 @@ class CegrRunner(BaseRunner):
                 "rounds_to_pass": jb["pass_wave"] if jb["passed"] else self.max_rounds + 1,
                 "llm_calls": jb["llm_calls"],
                 "architect_calls": 0,
-                "recurrence_count": total_job_recur,
+                "recurrence_count": post_hoc_recur,
                 "rl_runs": jb["rl_runs"],
                 "rl_episodes": jb["rl_episodes"],
                 "vf": bool(ev["verified_fix"]),

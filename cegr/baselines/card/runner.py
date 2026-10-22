@@ -195,66 +195,72 @@ class CardRunner(BaseRunner):
         reflections_history: List[str] = []
         passed = False
         pass_round = None
-        recur_total = 0
-        seen_violations = set()
+        seen_violations: Dict[str, Any] = {}
         waves_log = []
 
-        for rnd in range(1, self.max_rounds + 1):
-            tpe_res = self._eval_tpe(current_code)
-            if not tpe_res["ok"]:
-                waves_log.append({"round": rnd, "passed": False, "violations": 0, "error": tpe_res["error"]})
-                feedback = generate_card_feedback(
-                    syntax_error=tpe_res["error"],
-                    tpe_violations=[],
-                    succ_returns=[],
-                    fail_returns=[],
-                    succ_comps={},
-                    fail_comps={},
-                    reflections_history=reflections_history if self.use_reflection_memory else None,
-                )
-            else:
-                if tpe_res["passed"]:
-                    passed = True
-                    pass_round = rnd - 1 if rnd > 1 else 0
-                    waves_log.append({"round": rnd, "passed": True, "violations": 0})
-        latest_valid_code = r0_code
-        # Check if r0 is valid
+        # Round 0: Evaluate initial R_0 without LLM calls
         init_tpe = self._eval_tpe(r0_code)
+        latest_valid_code = r0_code if init_tpe["ok"] else None
+
         if init_tpe["passed"]:
             passed = True
             pass_round = 0
+            final_code = r0_code
+            waves_log.append({"round": 0, "passed": True, "violations": 0})
+        else:
+            for v in init_tpe["violations"]:
+                tag = v.get("pair", {}).get("tag", "reference_pair")
+                seen_violations[tag] = v.get("pair")
+            feedback = generate_card_feedback(
+                syntax_error=init_tpe["error"] if not init_tpe["ok"] else None,
+                tpe_violations=init_tpe["violations"],
+                succ_returns=init_tpe["succ_returns"],
+                fail_returns=init_tpe["fail_returns"],
+                succ_comps=init_tpe["succ_comps"],
+                fail_comps=init_tpe["fail_comps"],
+                reflections_history=None,
+            )
+            if self.use_reflection_memory:
+                reflections_history.append(feedback)
+            waves_log.append({
+                "round": 0, "passed": False,
+                "violations": len(init_tpe["violations"]),
+                "error": init_tpe["error"]
+            })
 
         for rnd in range(1, self.max_rounds + 1):
             if passed:
                 break
-            tpe_res = self._eval_tpe(current_code)
-            if not tpe_res["ok"]:
-                waves_log.append({"round": rnd, "passed": False, "violations": 0, "error": tpe_res["error"]})
-                feedback = generate_card_feedback(
-                    syntax_error=tpe_res["error"],
-                    tpe_violations=[],
-                    succ_returns=[],
-                    fail_returns=[],
-                    succ_comps={},
-                    fail_comps={},
-                    reflections_history=reflections_history if self.use_reflection_memory else None,
-                )
+
+            msgs = build_card_prompts(
+                task_desc=self.task_desc,
+                api_desc=self.api_desc,
+                current_code=current_code,
+                feedback_text=feedback,
+                round_idx=rnd,
+            )
+            seed_val = 1000 + (sample_idx % 10) * 80 + rnd * 11
+            out = llm_batch_chat([msgs], temperature=0.35, max_tokens=900, seeds=[seed_val])[0]
+            llm_calls += 1
+            cand_code = extract_code(out["text"])
+
+            tpe_res = self._eval_tpe(cand_code)
+            if tpe_res["ok"]:
+                latest_valid_code = cand_code
+
+            if tpe_res["passed"]:
+                passed = True
+                pass_round = rnd
+                final_code = cand_code
+                waves_log.append({"round": rnd, "passed": True, "violations": 0})
+                break
             else:
-                latest_valid_code = current_code
-                if tpe_res["passed"]:
-                    passed = True
-                    pass_round = rnd
-                    waves_log.append({"round": rnd, "passed": True, "violations": 0})
-                    break
-
-                # Count recurrence
-                cur_viols = {v["pair"]["tag"] for v in tpe_res["violations"]}
-                recur = len(cur_viols.intersection(seen_violations))
-                recur_total += recur
-                seen_violations.update(cur_viols)
+                for v in tpe_res["violations"]:
+                    tag = v.get("pair", {}).get("tag", "reference_pair")
+                    seen_violations[tag] = v.get("pair")
 
                 feedback = generate_card_feedback(
-                    syntax_error=None,
+                    syntax_error=tpe_res["error"] if not tpe_res["ok"] else None,
                     tpe_violations=tpe_res["violations"],
                     succ_returns=tpe_res["succ_returns"],
                     fail_returns=tpe_res["fail_returns"],
@@ -262,42 +268,30 @@ class CardRunner(BaseRunner):
                     fail_comps=tpe_res["fail_comps"],
                     reflections_history=reflections_history if self.use_reflection_memory else None,
                 )
-
                 if self.use_reflection_memory:
-                    top_viol = tpe_res["violations"][0]
-                    tag = top_viol["pair"]["tag"]
-                    reflections_history.append(f"Preference ranking violated on pair {tag} (margin={top_viol['margin']:+.3f}).")
+                    reflections_history.append(feedback)
 
-                waves_log.append({"round": rnd, "passed": False, "violations": len(cur_viols), "recur": recur})
+                waves_log.append({
+                    "round": rnd, "passed": False,
+                    "violations": len(tpe_res["violations"]),
+                    "error": tpe_res["error"]
+                })
+                current_code = cand_code
 
-            # Call LLM for repair (strictly up to max_rounds calls)
-            if rnd <= self.max_rounds:
-                msgs = build_card_prompts(
-                    task_desc=self.task_desc,
-                    api_desc=self.api_desc,
-                    current_code=current_code,
-                    feedback_text=feedback,
-                    round_idx=rnd,
-                )
-                seed_val = 1000 + (sample_idx % 10) * 80 + rnd * 11
-                out = llm_batch_chat([msgs], temperature=0.35, max_tokens=900, seeds=[seed_val])[0]
-                llm_calls += 1
-                current_code = extract_code(out["text"])
-
-        # Check final candidate
         if not passed:
-            final_tpe = self._eval_tpe(current_code)
-            if final_tpe["passed"]:
-                passed = True
-                pass_round = self.max_rounds
-                final_code = current_code
-            elif final_tpe["ok"]:
-                latest_valid_code = current_code
-                final_code = latest_valid_code
-            else:
-                final_code = latest_valid_code
-        else:
-            final_code = current_code
+            final_code = latest_valid_code if latest_valid_code is not None else r0_code
+
+        # Post-hoc recurrence count replay on R_final using 'margin' mode
+        recurrence_count = 0
+        if seen_violations:
+            final_tpe = self._eval_tpe(final_code)
+            final_tab = final_tpe.get("table")
+            from cegr.core.tpe_evaluator import pair_returns, classify_pair
+            for p_tag, p in seen_violations.items():
+                if p:
+                    rb, rw = pair_returns(self.env, final_tab or final_tpe, p)
+                    if classify_pair(rb, rw, eps_rel=0.02) is not None:
+                        recurrence_count += 1
 
         # Independent Oracle evaluation
         orig_an = analyze(self.env, r0_code, cache_table=True) if isinstance(self.env, DoorKeyEnv) else None
@@ -325,7 +319,7 @@ class CardRunner(BaseRunner):
             "llm_calls": llm_calls,
             "rl_runs": 1,
             "rl_episodes": 0,  # CARD does not train RL in the loop
-            "recur_total": recur_total,
+            "recurrence_count": recurrence_count,
             "vf": bool(ev["verified_fix"]),
             "tier1_safe": bool(ev["tier1_safe_aligned"]),
             "loose_dp": bool(ev["loose_dp"]),

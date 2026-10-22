@@ -9,6 +9,7 @@ class Candidate:
     fitness: float = 0.0  # task success rate from RL probe
     reflection: str = ""
     rl_episodes: int = 0
+    valid: bool = True
     info: Dict[str, Any] = field(default_factory=dict)
 
 

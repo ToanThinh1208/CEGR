@@ -77,8 +77,8 @@ def generate_card_feedback(
     # Optional Memory Reflection (CARD_REFL mode)
     if reflections_history:
         blocks.append(
-            "=== TEXT REFLECTION MEMORY (Past Iteration Failures) ===\n" +
-            "\n".join(f"- Iteration {idx+1}: {refl}" for idx, refl in enumerate(reflections_history[-3:]))
+            "=== TEXT REFLECTION MEMORY (Concatenated Feedback from Past Rounds) ===\n" +
+            "\n\n".join(f"[Round {idx} Feedback History]\n{refl}" for idx, refl in enumerate(reflections_history))
         )
 
     return "\n\n".join(blocks)

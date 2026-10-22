@@ -219,26 +219,32 @@ def check_rollout_exec(env: Any, reward_fn: Any, p0_trajs: List[Any]) -> None:
     if not p0_trajs:
         return
     for item in p0_trajs:
-        steps = item if isinstance(item, list) else item.get("better_steps", item.get("better", []))
-        if not isinstance(steps, list):
-            continue
-        for st in steps:
-            if not hasattr(st, "s") or not hasattr(st, "s2"):
-                continue
-            try:
-                out = reward_fn(st.s, st.a, st.s2)
-            except Exception as e:
-                raise RewardError(f"RuntimeError:{type(e).__name__}:{e}")
-            if not isinstance(out, dict):
-                out = {"total": out}
-            for k, v in out.items():
-                if isinstance(v, bool):
-                    v = float(v)
+        step_lists = []
+        if isinstance(item, list):
+            step_lists.append(item)
+        elif isinstance(item, dict):
+            for k in ("better_steps", "better", "worse_steps", "worse"):
+                val = item.get(k)
+                if isinstance(val, list) and len(val) > 0 and hasattr(val[0], "s") and hasattr(val[0], "s2"):
+                    step_lists.append(val)
+        for steps in step_lists:
+            for st in steps:
+                if not hasattr(st, "s") or not hasattr(st, "s2"):
+                    continue
                 try:
-                    v = float(v)
-                except (ValueError, TypeError):
-                    raise RewardError(f"invalid_component_type:{type(v).__name__}")
-                if not math.isfinite(v):
-                    raise RewardError("non_finite_reward")
-                if abs(v) > 1e4:
-                    raise RewardError("extreme_scale")
+                    out = reward_fn(st.s, st.a, st.s2)
+                except Exception as e:
+                    raise RewardError(f"RuntimeError:{type(e).__name__}:{e}")
+                if not isinstance(out, dict):
+                    out = {"total": out}
+                for k, v in out.items():
+                    if isinstance(v, bool):
+                        v = float(v)
+                    try:
+                        v = float(v)
+                    except (ValueError, TypeError):
+                        raise RewardError(f"invalid_component_type:{type(v).__name__}")
+                    if not math.isfinite(v):
+                        raise RewardError("non_finite_reward")
+                    if abs(v) > 1e4:
+                        raise RewardError("extreme_scale")
