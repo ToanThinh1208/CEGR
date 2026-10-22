@@ -1,0 +1,102 @@
+[
+  {
+    "id": "mut_key_pickup_loop_1",
+    "origin": "mutant",
+    "family": "key_pickup_loop",
+    "desc": "Thưởng nhặt chìa không kiểm tra lặp -> nhặt/thả chìa liên tục",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"door_progress\"] = 0.3 if (s.door != DOOR_OPEN and s2.door == DOOR_OPEN) else 0.0\n    c[\"key_pickup\"] = 0.25 if (not s.has_key and s2.has_key) else 0.0\n    c[\"goal\"] = 1.0 if at_goal(s2) else 0.0\n    return c\n",
+    "culprit": "key_pickup",
+    "culprit_verified": true,
+    "split": "main"
+  },
+  {
+    "id": "mut_door_toggle_loop_1",
+    "origin": "mutant",
+    "family": "door_toggle_loop",
+    "desc": "Thưởng đổi trạng thái cửa -> đóng/mở cửa liên tục",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"key_once\"] = 0.3 if (not s.has_key and s2.has_key and s.key_pos == KEY_START_POS) else 0.0\n    c[\"door_change\"] = 0.25 if (s.door != s2.door) else 0.0\n    c[\"goal\"] = 1.0 if at_goal(s2) else 0.0\n    return c\n",
+    "culprit": "door_change",
+    "culprit_verified": true,
+    "split": "main"
+  },
+  {
+    "id": "mut_near_door_hover_1",
+    "origin": "mutant",
+    "family": "near_door_hover",
+    "desc": "Thưởng đứng cạnh cửa mỗi bước -> đứng lượn cạnh cửa",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"key_shaping\"] = 0.2 * ((1 if s2.has_key else 0) - (1 if s.has_key else 0))\n    c[\"near_door\"] = 0.15 if manhattan(s2.pos, DOOR_POS) <= 1 else 0.0\n    c[\"goal\"] = 1.0 if at_goal(s2) else 0.0\n    return c\n",
+    "culprit": "near_door",
+    "culprit_verified": true,
+    "split": "main"
+  },
+  {
+    "id": "mut_inv_dist_goal_1",
+    "origin": "mutant",
+    "family": "inv_dist_goal",
+    "desc": "Thưởng nghịch đảo khoảng cách tới đích mỗi bước -> đứng gần đích",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"key_shaping\"] = 0.2 * ((1 if s2.has_key else 0) - (1 if s.has_key else 0))\n    c[\"closeness\"] = 0.15 / (1.0 + manhattan(s2.pos, GOAL_POS))\n    c[\"goal\"] = 1.0 if at_goal(s2) else 0.0\n    return c\n",
+    "culprit": "closeness",
+    "culprit_verified": true,
+    "split": "main"
+  },
+  {
+    "id": "mut_carry_key_bonus_1",
+    "origin": "mutant",
+    "family": "carry_key_bonus",
+    "desc": "Thưởng mỗi bước đang cầm chìa -> nhặt chìa xong đứng yên",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"door_shaping\"] = 0.2 * ((1 if s2.door == DOOR_OPEN else 0) - (1 if s.door == DOOR_OPEN else 0))\n    c[\"carry_key\"] = 0.10 if s2.has_key else 0.0\n    c[\"goal\"] = 1.0 if at_goal(s2) else 0.0\n    return c\n",
+    "culprit": "carry_key",
+    "culprit_verified": true,
+    "split": "main"
+  },
+  {
+    "id": "mut_door_open_bonus_1",
+    "origin": "mutant",
+    "family": "door_open_bonus",
+    "desc": "Thưởng mỗi bước cửa mở -> mở cửa xong đứng yên",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"key_shaping\"] = 0.2 * ((1 if s2.has_key else 0) - (1 if s.has_key else 0))\n    c[\"door_open_state\"] = 0.15 if s2.door == DOOR_OPEN else 0.0\n    c[\"goal\"] = 1.0 if at_goal(s2) else 0.0\n    return c\n",
+    "culprit": "door_open_state",
+    "culprit_verified": true,
+    "split": "main"
+  },
+  {
+    "id": "mut_turn_explore_bonus_1",
+    "origin": "mutant",
+    "family": "turn_explore_bonus",
+    "desc": "Thưởng hành động quay trái/phải -> quay vòng tròn tại chỗ",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"key_shaping\"] = 0.3 * ((1 if s2.has_key else 0) - (1 if s.has_key else 0))\n    c[\"turn_explore\"] = 0.20 if a in (LEFT, RIGHT) else 0.0\n    c[\"goal\"] = 1.0 if at_goal(s2) else 0.0\n    return c\n",
+    "culprit": "turn_explore",
+    "culprit_verified": true,
+    "split": "pilot"
+  },
+  {
+    "id": "mut_survival_bonus_1",
+    "origin": "mutant",
+    "family": "survival_bonus",
+    "desc": "Lỗi dấu step penalty thành thưởng sống sót dương -> câu giờ",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"key_shaping\"] = 0.3 * ((1 if s2.has_key else 0) - (1 if s.has_key else 0))\n    c[\"alive_bonus\"] = 0.10\n    c[\"goal\"] = 1.0 if at_goal(s2) else 0.0\n    return c\n",
+    "culprit": "alive_bonus",
+    "culprit_verified": true,
+    "split": "pilot"
+  },
+  {
+    "id": "mut_pickup_try_spam_1",
+    "origin": "mutant",
+    "family": "pickup_try_spam",
+    "desc": "Thưởng khi bấm nút PICKUP bất kể thành công hay không -> spam pickup",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"door_shaping\"] = 0.3 * ((1 if s2.door == DOOR_OPEN else 0) - (1 if s.door == DOOR_OPEN else 0))\n    c[\"pickup_attempt\"] = 0.20 if a == PICKUP else 0.0\n    c[\"goal\"] = 1.0 if at_goal(s2) else 0.0\n    return c\n",
+    "culprit": "pickup_attempt",
+    "culprit_verified": true,
+    "split": "main"
+  },
+  {
+    "id": "mut_toggle_try_spam_1",
+    "origin": "mutant",
+    "family": "toggle_try_spam",
+    "desc": "Thưởng khi bấm nút TOGGLE -> spam toggle",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"key_shaping\"] = 0.3 * ((1 if s2.has_key else 0) - (1 if s.has_key else 0))\n    c[\"toggle_attempt\"] = 0.20 if a == TOGGLE else 0.0\n    c[\"goal\"] = 1.0 if at_goal(s2) else 0.0\n    return c\n",
+    "culprit": "toggle_attempt",
+    "culprit_verified": true,
+    "split": "main"
+  }
+]

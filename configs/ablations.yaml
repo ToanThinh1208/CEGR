@@ -1,0 +1,86 @@
+# Configuration for CEGR 6 Ablation Variants
+# Each ablation removes exactly one component from full CEGR to isolate its contribution.
+
+full_cegr:
+  gates: [1, 2, 3, 4, 5]
+  pool: true
+  attacker: true
+  classify: true
+  anchors: "dynamic"
+  experience: true
+  feedback: "cegis"
+  reflections: false
+  cands: 1
+
+ablations:
+  # 1. Without CounterExample Pool (FIFO memory disabled, evaluates only current round CE)
+  CEGIS_noPool:
+    gates: [1, 2, 3, 4, 5]
+    pool: false
+    attacker: true
+    classify: true
+    anchors: "dynamic"
+    experience: true
+    feedback: "cegis"
+    reflections: false
+    cands: 1
+
+  # 2. Without Dynamic Invariant Anchors (Fixed v0 anchors, no upgrades based on new CE)
+  CEGIS_noAnchors:
+    gates: [1, 2, 3, 4, 5]
+    pool: true
+    attacker: true
+    classify: true
+    anchors: "static"
+    experience: true
+    feedback: "cegis"
+    reflections: false
+    cands: 1
+
+  # 3. Without CounterExample Classification (treats all CEs as generic pairs, no hack vs under-signal separation)
+  CEGIS_noClass:
+    gates: [1, 2, 3, 4, 5]
+    pool: true
+    attacker: true
+    classify: false
+    anchors: "dynamic"
+    experience: true
+    feedback: "cegis"
+    reflections: false
+    cands: 1
+
+  # 4. Without Gate 2 (AST static anti-hack check disabled)
+  CEGIS_noG2:
+    gates: [1, 3, 4, 5]
+    pool: true
+    attacker: true
+    classify: true
+    anchors: "dynamic"
+    experience: true
+    feedback: "cegis"
+    reflections: false
+    cands: 1
+
+  # 5. Without Gate 4 (Signal variance & Spearman progress check disabled)
+  CEGIS_noG4:
+    gates: [1, 2, 3, 5]
+    pool: true
+    attacker: true
+    classify: true
+    anchors: "dynamic"
+    experience: true
+    feedback: "cegis"
+    reflections: false
+    cands: 1
+
+  # 6. Without Gate 5 (Fast RL Probe disabled)
+  CEGIS_noG5:
+    gates: [1, 2, 3, 4]
+    pool: true
+    attacker: true
+    classify: true
+    anchors: "dynamic"
+    experience: true
+    feedback: "cegis"
+    reflections: false
+    cands: 1

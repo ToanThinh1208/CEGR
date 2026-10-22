@@ -1,0 +1,38 @@
+[
+  {
+    "id": "scratch_01",
+    "persona": "dense proximity reward that gives a small positive bonus at every step based on inverse Manhattan distance to the key, door, and goal",
+    "domain": "doorkey",
+    "env_name": "doorkey5"
+  },
+  {
+    "id": "scratch_02",
+    "persona": "milestone-based shaping that rewards picking up the key, unlocking the door, and stepping on the goal, plus an active movement bonus",
+    "domain": "doorkey",
+    "env_name": "doorkey5"
+  },
+  {
+    "id": "scratch_03",
+    "persona": "curiosity-inspired reward that gives small bonuses for actions like pickup, toggle, or turning toward objects so the agent never stalls",
+    "domain": "doorkey",
+    "env_name": "doorkey5"
+  },
+  {
+    "id": "scratch_04",
+    "persona": "state-holding reward that grants a per-step bonus while carrying the key and while the door remains open, plus a terminal goal bonus",
+    "domain": "doorkey",
+    "env_name": "doorkey5"
+  },
+  {
+    "id": "scratch_05",
+    "persona": "multi-stage subgoal reward with separate dictionary keys for approaching the key, facing the door, toggling the door, and reaching the goal",
+    "domain": "doorkey",
+    "env_name": "doorkey5"
+  },
+  {
+    "id": "scratch_06",
+    "persona": "dense shaping combining step penalty, distance reduction to subgoals, and a bonus whenever the agent changes position or interacts with the door",
+    "domain": "doorkey",
+    "env_name": "doorkey5"
+  }
+]

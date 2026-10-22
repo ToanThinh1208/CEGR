@@ -1,0 +1,69 @@
+# Configuration for Continuous Control Meta-World Domain
+domain: "metaworld"
+tasks:
+  - "reach-v2"
+  - "door-open-v2"
+  - "pick-place-v2"
+
+# Task environment settings
+env_defaults:
+  horizon: 500
+  action_dim: 4 # Continuous 3D hand displacement + 1D gripper action
+  obs_keys:
+    - "hand_pos"
+    - "obj_pos"
+    - "goal_pos"
+    - "gripper_open"
+    - "obj_grasped"
+    - "in_target"
+
+# Budget and search parameters
+budget:
+  n_rounds: 4 # Strict equal budget (N = 4)
+  eureka_pop: 2
+  eureka_generations: 2
+  n_samples: 3
+  seed: 42
+
+# LLM inference parameters
+llm:
+  model_id: "Qwen/Qwen2.5-Coder-7B-Instruct-AWQ"
+  max_model_len: 6144
+  temperature_gen: 0.95
+  temperature_repair: 0.35
+  max_tokens: 900
+  gpu_memory_utilization: 0.88
+  tensor_parallel_size: 2
+
+# Continuous Trajectory Attacker parameters (Gate G3 for Meta-World)
+trajectory_attacker:
+  method: "cem" # "cem" (Cross-Entropy Method) | "perturbation" | "replay_buffer"
+  cem_iterations: 10
+  population_size: 50
+  elite_fraction: 0.10
+  action_noise_std: 0.05
+  max_exploit_trajectories: 3
+
+# GateKeeper verification parameters
+gatekeeper:
+  g2_mode: "merge"
+  eps_signal_rel: 0.02
+  eps_signal_abs: 1.0e-3
+  rho_threshold: 0.70
+  pool_max: 40
+  stall_k: 2
+  max_invariants: 8
+  m_ce_per_round: 2
+  attacker_mode: "continuous_cem"
+
+# Continuous RL Probe parameters (Gate G5 and Oracle Evaluation)
+continuous_rl_probe:
+  algorithm: "sac" # "sac" | "ppo"
+  short_probe_steps: 25000 # Fast gate 5 probe
+  short_probe_eval_episodes: 5
+  tail_threshold: 0.40
+  full_eval_steps: 100000 # Post-hoc full RL training
+  full_eval_seeds: 3
+  learning_rate: 3.0e-4
+  gamma: 0.99
+  batch_size: 256

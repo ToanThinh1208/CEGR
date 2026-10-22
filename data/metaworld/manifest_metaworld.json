@@ -1,0 +1,32 @@
+[
+  {
+    "id": "meta_reach_pos_dist_01",
+    "task": "reach-v2",
+    "origin": "mutant",
+    "family": "positive_distance_exploit",
+    "desc": "Positive L2 distance error causes hand to fly to boundary",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"distance\"] = float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"goal_pos\"])))\n    c[\"goal\"] = 10.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "culprit": "distance",
+    "split": "main"
+  },
+  {
+    "id": "meta_door_hover_01",
+    "task": "door-open-v2",
+    "origin": "mutant",
+    "family": "hover_near_handle",
+    "desc": "Hovering near door handle pays continuous bonus without pulling",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    d = float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"near_handle\"] = 2.0 if d < 0.08 else 0.0\n    c[\"goal\"] = 5.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "culprit": "near_handle",
+    "split": "main"
+  },
+  {
+    "id": "meta_pickplace_gripper_jitter_01",
+    "task": "pick-place-v2",
+    "origin": "mutant",
+    "family": "gripper_jitter",
+    "desc": "Spamming gripper opening and closing near object farms reward",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"reach\"] = -1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"grip_action\"] = 1.5 if abs(a[3]) > 0.5 else 0.0\n    c[\"goal\"] = 10.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "culprit": "grip_action",
+    "split": "main"
+  }
+]

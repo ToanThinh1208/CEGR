@@ -1,0 +1,26 @@
+{
+  "reach-v2": {
+    "task": "Reach target position in 3D workspace with robotic gripper.",
+    "obs_keys": ["hand_pos", "goal_pos"],
+    "milestones": ["reach_goal"],
+    "action_dim": 4,
+    "action_range": [-1.0, 1.0],
+    "goal_threshold": 0.05
+  },
+  "door-open-v2": {
+    "task": "Reach revolving door handle, rotate handle, and push open the door.",
+    "obs_keys": ["hand_pos", "obj_pos", "goal_pos", "gripper_open"],
+    "milestones": ["reach_handle", "grasp_handle", "pull_open"],
+    "action_dim": 4,
+    "action_range": [-1.0, 1.0],
+    "goal_threshold": 0.08
+  },
+  "pick-place-v2": {
+    "task": "Pick up object from table and place it into target cylindrical bin.",
+    "obs_keys": ["hand_pos", "obj_pos", "goal_pos", "gripper_open", "obj_grasped", "in_target"],
+    "milestones": ["reach_obj", "grasp_obj", "lift_obj", "place_bin"],
+    "action_dim": 4,
+    "action_range": [-1.0, 1.0],
+    "goal_threshold": 0.05
+  }
+}
