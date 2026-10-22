@@ -131,5 +131,76 @@ def test_cegr_metaworld_execution():
     assert "final_code" in res
 
 
+def test_card_prompts_reuse_common_prompt():
+    from cegr.baselines.card import build_card_prompts, self_reflection_prompt, format_self_reflection_prompt
+
+    feedback_sample = "=== PROCESS FEEDBACK ===\nExecution Status: PASSED.\n=== PREFERENCE FEEDBACK ===\nPair 'T3_T2' inverted."
+    msgs = build_card_prompts(
+        task_desc="Task description",
+        api_desc="API description",
+        current_code="def reward_components(s, a, s2):\n    return {'step': -0.01}",
+        feedback_text=feedback_sample,
+        round_idx=1,
+    )
+    assert len(msgs) == 2
+    assert msgs[0]["role"] == "system"
+    assert msgs[1]["role"] == "user"
+
+    user_content = msgs[1]["content"]
+    # Verify core guidance from CARD common_prompt is present
+    assert "I use the reward function you wrote to train the RL agent" in user_content
+    assert "Please carefully analyze the above feedback step by step" in user_content
+    assert "If the success rates are always near zero, then you must rewrite the entire reward function" in user_content
+    assert "If some reward components' magnitude is significantly larger" in user_content
+    assert "Do not invent any variable or attribute that is not given" in user_content
+    assert "Pair 'T3_T2' inverted" in user_content
+
+
+def test_eureka_prompts_match_eureka_spec():
+    from cegr.baselines.eureka import (
+        build_eureka_prompts,
+        build_initial_eureka_prompts,
+        INITIAL_SYSTEM,
+        CODE_OUTPUT_TIP,
+        CODE_FEEDBACK,
+        POLICY_FEEDBACK,
+    )
+
+    # 1. Test build_eureka_prompts with reflection text
+    refl_text = "- task_success_rate: [0.00, 0.00, 0.20, 0.40, 0.60] (Max: 0.60, Final: 0.60)"
+    msgs = build_eureka_prompts(
+        current_code="def reward_components(s, a, s2):\n    return {'step': -0.01}",
+        reflection_text=refl_text,
+        task_desc="Task description",
+        api_desc="API description",
+        generation=1,
+    )
+    assert len(msgs) == 2
+    sys_content = msgs[0]["content"]
+    user_content = msgs[1]["content"]
+
+    # Verify Eureka system prompt and code output tip
+    assert "You are a reward engineer" in sys_content
+    assert "Some helpful tips for writing the reward function code" in sys_content
+
+    # Verify Eureka training reflection & code feedback
+    assert "We trained an RL policy" in user_content
+    assert refl_text in user_content
+    assert "Please carefully analyze the policy feedback" in user_content
+    assert "If the success rates are always near zero" in user_content
+    assert "If some reward components' magnitude is significantly larger" in user_content
+
+    # 2. Test initial prompt builder (Generation 0)
+    init_msgs = build_initial_eureka_prompts(
+        task_desc="DoorKey-5x5 task",
+        api_desc="DoorKey API",
+    )
+    assert len(init_msgs) == 2
+    assert "You are a reward engineer" in init_msgs[0]["content"]
+    assert "Write a reward function for the following task:" in init_msgs[1]["content"]
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
+
+
