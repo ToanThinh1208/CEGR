@@ -29,12 +29,13 @@ Mỗi notebook môi trường DoorKey đều đồng bộ chính xác 100% cấu
 
 ---
 
-## 3. Hướng dẫn chạy trên Kaggle GPU (T4 / P100 / A100)
+## 3. Hướng dẫn chạy trên Kaggle GPU / Google Colab (T4 / P100 / A100)
 
-1. Tải notebook môi trường cần chạy (ví dụ `doorkey5_benchmark.ipynb`) lên Kaggle Notebook.
-2. Bật **Accelerator: GPU T4 x2** hoặc **P100 / A100**.
-3. Thêm Kaggle Secret `HF_TOKEN` (hoặc để trống nếu dùng token mặc định trong code).
+1. Tải notebook môi trường cần chạy (ví dụ `doorkey5_benchmark.ipynb`) lên Kaggle Notebook hoặc Google Colab.
+2. Bật **Accelerator / Hardware accelerator: GPU** (Kaggle: GPU T4 x2 hoặc P100/A100 | Colab: T4/A100).
+3. Thêm Secret `HF_TOKEN` nếu cần (hoặc để trống nếu dùng token mặc định).
 4. Nhấn **Run All**:
+   - **Cell Setup (Cell 0)**: Tự động `git clone https://github.com/ToanThinh1208/CEGR.git`, điều hướng làm việc và liên kết gói thư viện `cegr` vào `sys.path`.
    - **Cell 1**: Tự động gỡ các gói xung đột và cài đặt `torch==2.6.0+cu124` cùng `vllm`.
    - **Cell 2 & 3**: Khởi tạo môi trường, DP Solver chính xác và sandbox an toàn.
    - **Cell 4 & 5**: Khởi tạo Oracle, bộ chấm điểm 2 tầng (`tier1_safe_aligned` & `tier2_dense_vf`) và Q-learning probe v2.
