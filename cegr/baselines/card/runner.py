@@ -12,15 +12,16 @@ from cegr.baselines.card.feedback_generator import generate_card_feedback
 from cegr.baselines.card.prompts import build_card_prompts
 
 
-def traj_component_returns(env: Any, table: Any, actions: List[int]) -> Dict[str, float]:
+def traj_component_returns(env: Any, table: Any, actions: List[int], gamma: float = 1.0) -> Dict[str, float]:
     i = 0
     comp_tot = {k: 0.0 for k in table.names}
-    for a in actions:
+    for t, a in enumerate(actions):
         if env.terminal[i]:
             break
         a = int(a)
+        discount = gamma ** t
         for ki, k in enumerate(table.names):
-            comp_tot[k] += float(table.C[i, a, ki])
+            comp_tot[k] += discount * float(table.C[i, a, ki])
         g = bool(env.goal_flag[i, a])
         i = int(env.nxt[i, a])
         if g:
@@ -53,6 +54,7 @@ class CardRunner(BaseRunner):
         self.task_desc = task_desc or TASK_DESC
         self.api_desc = api_desc or API_DESC
         self.is_continuous = not isinstance(env, DoorKeyEnv)
+        self.gamma = float(config.get("gamma", 1.0))
         self.buffer = self._init_buffer()
 
     def _init_buffer(self) -> TrajectoryBuffer:
@@ -61,11 +63,13 @@ class CardRunner(BaseRunner):
         p0_pairs = build_p0_pairs(self.env, seed=1000, max_noisy=20)
         for p in p0_pairs:
             tb.add_pair(
-                p["better"],
-                p["worse"],
-                tag=p["tag"],
+                better=p["better"],
+                worse=p["worse"],
+                tag=p.get("tag", "p0"),
                 better_steps=p.get("better_steps"),
                 worse_steps=p.get("worse_steps"),
+                type=p.get("type", "p0"),
+                progress_pair=p.get("progress_pair"),
             )
         return tb
 
@@ -93,10 +97,10 @@ class CardRunner(BaseRunner):
             fail_comps = {}
 
             for p in self.buffer.get_pairs():
-                rb = traj_return(self.env, table, p["better"])
-                rw = traj_return(self.env, table, p["worse"])
-                cb = traj_component_returns(self.env, table, p["better"])
-                cw = traj_component_returns(self.env, table, p["worse"])
+                rb = traj_return(self.env, table, p["better"], gamma=self.gamma)
+                rw = traj_return(self.env, table, p["worse"], gamma=self.gamma)
+                cb = traj_component_returns(self.env, table, p["better"], gamma=self.gamma)
+                cw = traj_component_returns(self.env, table, p["worse"], gamma=self.gamma)
                 succ_rets.append(rb)
                 fail_rets.append(rw)
 
@@ -151,17 +155,21 @@ class CardRunner(BaseRunner):
                 def eval_steps(steps):
                     tot = 0.0
                     ctot = {}
-                    for st in steps:
+                    for t, st in enumerate(steps):
                         comps = fn(st.s, st.a, st.s2)
                         if not isinstance(comps, dict):
                             comps = {"total": float(comps)}
-                        tot += sum(float(v) for v in comps.values())
+                        step_r = sum(float(v) for v in comps.values())
+                        discount = self.gamma ** t
+                        tot += discount * step_r
                         for k, v in comps.items():
-                            ctot[k] = ctot.get(k, 0.0) + float(v)
+                            ctot[k] = ctot.get(k, 0.0) + discount * float(v)
                     return tot, ctot
 
-                rb, cb = eval_steps(p["better"])
-                rw, cw = eval_steps(p["worse"])
+                b_steps = p.get("better_steps") or p.get("better")
+                w_steps = p.get("worse_steps") or p.get("worse")
+                rb, cb = eval_steps(b_steps)
+                rw, cw = eval_steps(w_steps)
                 succ_rets.append(rb)
                 fail_rets.append(rw)
                 for k in set(list(cb.keys()) + list(cw.keys())):
@@ -186,6 +194,7 @@ class CardRunner(BaseRunner):
                 "succ_comps": succ_comps,
                 "fail_comps": fail_comps,
                 "table": None,
+                "reward_fn": fn,
             }
 
     def run_single_job(self, reward_record: Dict[str, Any], sample_idx: int = 0) -> Dict[str, Any]:
@@ -240,7 +249,9 @@ class CardRunner(BaseRunner):
                 round_idx=rnd,
             )
             seed_val = 1000 + (sample_idx % 10) * 80 + rnd * 11
-            out = llm_batch_chat([msgs], temperature=0.35, max_tokens=900, seeds=[seed_val])[0]
+            temp = float(self.config.get("llm", {}).get("temperature_repair", 0.35))
+            max_tok = int(self.config.get("llm", {}).get("max_tokens", 900))
+            out = llm_batch_chat([msgs], temperature=temp, max_tokens=max_tok, seeds=[seed_val])[0]
             llm_calls += 1
             cand_code = extract_code(out["text"])
 
@@ -284,14 +295,25 @@ class CardRunner(BaseRunner):
         # Post-hoc recurrence count replay on R_final using 'margin' mode
         recurrence_count = 0
         if seen_violations:
-            final_tpe = self._eval_tpe(final_code)
-            final_tab = final_tpe.get("table")
-            from cegr.core.tpe_evaluator import pair_returns, classify_pair
-            for p_tag, p in seen_violations.items():
-                if p:
-                    rb, rw = pair_returns(self.env, final_tab or final_tpe, p)
-                    if classify_pair(rb, rw, eps_rel=0.02) is not None:
-                        recurrence_count += 1
+            final_table = None
+            if not self.is_continuous:
+                try:
+                    final_table = build_reward_table(self.env, final_code)
+                except Exception:
+                    final_table = None
+            else:
+                try:
+                    from cegr.core.code_sandbox import make_namespace, check_code
+                    check_code(final_code)
+                    ns = make_namespace(self.env)
+                    exec(compile(final_code, "<eval_final>", "exec"), ns)
+                    final_table = ns["reward_components"]
+                except Exception:
+                    final_table = None
+
+            refs = build_reference_trajs(self.env) if isinstance(self.env, DoorKeyEnv) else None
+            from cegr.core.tpe_evaluator import count_recurrence
+            recurrence_count = count_recurrence(self.env, final_table, seen_violations, refs=refs)
 
         # Independent Oracle evaluation
         orig_an = analyze(self.env, r0_code, cache_table=True) if isinstance(self.env, DoorKeyEnv) else None
