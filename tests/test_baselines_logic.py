@@ -118,7 +118,7 @@ def test_cegr_metaworld_execution():
 
     set_mock_llm(mock_mw_repair)
     config = {"budget": {"n_rounds": 2}}
-    runner = CegrRunner(env, config, method_name="CEGR")
+    runner = CegrRunner(env, config, method_name="CEGIS")
     rec = {
         "id": "test_mw_hover",
         "code": (

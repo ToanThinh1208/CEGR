@@ -91,7 +91,7 @@ def test_cegr_wave_batch_and_verified_fix():
     set_mock_llm(mock_correct)
     env = make_env("doorkey5")
     config = {"budget": {"n_rounds": 2}}
-    runner = CegrRunner(env, config, method_name="CEGR")
+    runner = CegrRunner(env, config, method_name="CEGIS")
 
     test_records = [
         {
