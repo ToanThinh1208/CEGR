@@ -90,14 +90,14 @@ class CegrRunner(BaseRunner):
     """
     CEGR Runner: Coordinates CounterExample-Guided Reward Design with Multi-Tier GateKeeper.
     Supports both the proposed full CEGR protocol and all 6 ablation variants:
-      - CEGIS_noPool, CEGIS_noAnchors, CEGIS_noClass, CEGIS_noG2, CEGIS_noG4, CEGIS_noG5
+      - CEGR_noPool, CEGR_noAnchors, CEGR_noClass, CEGR_noG2, CEGR_noG4, CEGR_noG5
     """
 
     def __init__(
         self,
         env: Any,
         config: Dict[str, Any],
-        method_name: str = "CEGIS",
+        method_name: str = "CEGR",
         variant_cfg: Optional[Dict[str, Any]] = None,
         task_desc: str = "",
         api_desc: str = "",
@@ -117,7 +117,7 @@ class CegrRunner(BaseRunner):
             "classify": True,
             "anchors": "dynamic",
             "experience": True,
-            "feedback": "cegis",
+            "feedback": "cegr",
             "cands": 1,
             "probe_episodes": 1000,
             "probe_seeds": 2,

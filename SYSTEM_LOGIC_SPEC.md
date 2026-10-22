@@ -1,8 +1,10 @@
 # ĐẶC TẢ HỆ THỐNG LOGIC CHUẨN: CEGR & BASELINES (EUREKA, CARD)
+
 **Tài liệu tham chiếu chuẩn kiểm tra logic mã nguồn (Single Source of Truth for Logic Audits) — phiên bản hợp nhất**
 
 > **CHỈ DẪN BẮT BUỘC CHO AI ASSISTANT:**
-> Mỗi khi người dùng yêu cầu: *"kiểm tra lỗi logic"*, *"kiểm tra code"*, *"so sánh logic"* hoặc rà soát mã nguồn trong dự án này:
+> Mỗi khi người dùng yêu cầu: _"kiểm tra lỗi logic"_, _"kiểm tra code"_, _"so sánh logic"_ hoặc rà soát mã nguồn trong dự án này:
+>
 > 1. **BẮT BUỘC ĐỌC FILE NÀY ĐẦU TIÊN** để làm thang đo và tiêu chuẩn nghiệm thu logic cho từng file và hàm.
 > 2. **ƯU TIÊN ĐỘ CHÍNH XÁC HỌC THUẬT TUYỆT ĐỐI:** Không áp dụng các thủ thuật cắt giảm tính toán làm sai lệch bản chất thuật toán.
 > 3. Luôn đối chiếu với các quy tắc bất biến, cấu trúc dữ liệu và điều kiện biên dưới đây.
@@ -15,29 +17,29 @@
 
 ### 0.1. Quy ước tên
 
-| Tên dùng trong spec | Tên trong báo cáo / cấu hình | Ghi chú |
-| :--- | :--- | :--- |
-| `CEGR` | CARD-CEGIS, `CEGIS` (đầy đủ) | Phương pháp đề xuất |
-| `CEGIS_noPool`, `_noAnchors`, `_noClass`, `_noG2`, `_noG4`, `_noG5` | Giống nhau | Tên ablation giữ nguyên trong `ablations.yaml` |
-| `ORIG`, `EUREKA`, `CARD`, `CARD_REFL` | Giống nhau | Baseline |
+| Tên dùng trong spec                                                | Tên trong báo cáo / cấu hình | Ghi chú                                        |
+| :----------------------------------------------------------------- | :--------------------------- | :--------------------------------------------- |
+| `CEGR`                                                             | CEGR, `CEGR` (đầy đủ)        | Phương pháp đề xuất                            |
+| `CEGR_noPool`, `_noAnchors`, `_noClass`, `_noG2`, `_noG4`, `_noG5` | Giống nhau                   | Tên ablation giữ nguyên trong `ablations.yaml` |
+| `ORIG`, `EUREKA`, `CARD`, `CARD_REFL`                              | Giống nhau                   | Baseline                                       |
 
 ### 0.2. Bảng hằng số
 
-| Hằng số | Giá trị | Nơi dùng |
-| :--- | :--- | :--- |
-| $N$ (số lần gọi Coder LLM tối đa mỗi job) | 4 | Mọi phương pháp |
-| Số seed LLM độc lập mỗi (reward gốc, phương pháp) | 3 | Điều phối thực nghiệm |
-| Chân trời DoorKey | $T = 30$; kiểm tra kép $2T = 60$ | DP, Oracle |
-| Số trạng thái khả đạt DoorKey 5x5 | 270 | DP |
-| `POOL_MAX` | 40 (FIFO) | CE pool |
-| `eps_rel` | 0.02 (tương đối) | `classify_pair`, G4 |
-| Ngưỡng Spearman G4 | $\rho \ge 0.75$ | G4 |
-| Giới hạn thang đo reward | $\lvert v\rvert \le 10^4$ | G1 |
-| G5 DoorKey | 1000 episodes × 2 seeds, `tail_success_rate` ≥ 0.50 | G5 |
-| Probe của Eureka và Oracle (DoorKey) | 2500 episodes × 3 seeds, $\gamma = 1.0$, khởi tạo lạc quan, giảm $\alpha$, `tail_success_rate` ≥ 0.50 | Eureka fitness, Oracle |
-| Số cặp nhiễu tối đa trong $P_0$ | 20 | TPE, G3 |
-| Seed | CE/tìm kiếm = `1000`, G4 = `2000`, Oracle = `3000` | Toàn hệ thống |
-| Nhiệt độ sinh / sửa | 0.95 / 0.35 〔Mục 7.1〕 | Mọi phương pháp (cùng bảng nhiệt độ) |
+| Hằng số                                           | Giá trị                                                                                               | Nơi dùng                             |
+| :------------------------------------------------ | :---------------------------------------------------------------------------------------------------- | :----------------------------------- |
+| $N$ (số lần gọi Coder LLM tối đa mỗi job)         | 4                                                                                                     | Mọi phương pháp                      |
+| Số seed LLM độc lập mỗi (reward gốc, phương pháp) | 3                                                                                                     | Điều phối thực nghiệm                |
+| Chân trời DoorKey                                 | $T = 30$; kiểm tra kép $2T = 60$                                                                      | DP, Oracle                           |
+| Số trạng thái khả đạt DoorKey 5x5                 | 270                                                                                                   | DP                                   |
+| `POOL_MAX`                                        | 40 (FIFO)                                                                                             | CE pool                              |
+| `eps_rel`                                         | 0.02 (tương đối)                                                                                      | `classify_pair`, G4                  |
+| Ngưỡng Spearman G4                                | $\rho \ge 0.75$                                                                                       | G4                                   |
+| Giới hạn thang đo reward                          | $\lvert v\rvert \le 10^4$                                                                             | G1                                   |
+| G5 DoorKey                                        | 1000 episodes × 2 seeds, `tail_success_rate` ≥ 0.50                                                   | G5                                   |
+| Probe của Eureka và Oracle (DoorKey)              | 2500 episodes × 3 seeds, $\gamma = 1.0$, khởi tạo lạc quan, giảm $\alpha$, `tail_success_rate` ≥ 0.50 | Eureka fitness, Oracle               |
+| Số cặp nhiễu tối đa trong $P_0$                   | 20                                                                                                    | TPE, G3                              |
+| Seed                                              | CE/tìm kiếm = `1000`, G4 = `2000`, Oracle = `3000`                                                    | Toàn hệ thống                        |
+| Nhiệt độ sinh / sửa                               | 0.95 / 0.35 〔Mục 7.1〕                                                                               | Mọi phương pháp (cùng bảng nhiệt độ) |
 
 ---
 
@@ -71,6 +73,7 @@
 ### 2.1. Phân hệ Hạ tầng Thực thi & Đánh giá Cơ sở (`cegr/core/`)
 
 #### A. Sandbox an toàn & Biên dịch mã (`cegr/core/code_sandbox.py`)
+
 - **Mục tiêu:** Biên dịch chuỗi code LLM trong môi trường cách ly (Cổng G1).
 - **Quy tắc:**
   - **Kiểm tra AST (`check_code`):** cho phép import `math`, `numpy`, `typing`. Chặn `eval`, `exec`, `open`, `compile`, `globals`, `locals`, `getattr`, `setattr`, v.v. và mọi thuộc tính dunder bắt đầu bằng `__`. (Khác bản đã chạy trong báo cáo, xem Mục 6.1.)
@@ -83,6 +86,7 @@
     - Mọi giá trị ép về `float`, thỏa `math.isfinite(v)` và $\lvert v\rvert \le 10^4$.
 
 #### B. Thuật toán TPE (`cegr/core/tpe_evaluator.py`)
+
 - **Mục tiêu:** Lõi đánh giá TPE dùng chung cho `CARD`, `CARD_REFL` và G3 của `CEGR`.
 - **Quy tắc:**
   - **Tổng chiết khấu:** $G(\tau) = \sum_{t=0}^{|\tau|-1} \gamma^t R(s_t, a_t, s_{t+1})$; mọi component đều nhân $\gamma^t$. Giá trị $\gamma$ cho TPE và DP lấy từ config, **cùng một giá trị**. 〔Mục 7.3〕
@@ -105,6 +109,7 @@
 ### 2.2. Phân hệ Bộ giải Toán học, RL Probe & Oracle (`cegr/solvers/`)
 
 #### A. Quy hoạch động chính xác (`cegr/solvers/dp_solver.py`)
+
 - **Mục tiêu:** Tính $V_{\text{succ}}$ (giá trị tối ưu của quỹ đạo thành công) và $V_{\text{fail}}$ (giá trị tối ưu của quỹ đạo không chạm goal) trên bảng trạng thái DoorKey.
 - **Quy tắc:**
   - `succ = np.full(n, -np.inf)`, `fail = np.zeros(n)`.
@@ -115,6 +120,7 @@
   - `dp_attack()`: truy vết $\tau_{\text{succ}}^*$ và $\tau_{\text{fail}}^*$, phân loại qua `classify_pair(V_succ, V_fail, eps_rel=0.02)`. Gọi `classify_pair` trực tiếp, không lọc thô trước, để bắt cả `hack` lẫn `under_signal`.
 
 #### B. Bộ tấn công liên tục (`cegr/solvers/trajectory_attacker.py`)
+
 - **Mục tiêu:** Tìm quỹ đạo cày điểm mà không hoàn thành nhiệm vụ trên Meta-World (G3).
 - **Quy tắc:**
   - Hai nguồn tìm kiếm:
@@ -124,6 +130,7 @@
   - Lưu đầy đủ `better_steps` và `worse_steps` vào CE.
 
 #### C. RL Probes (`rl_probe.py`, `continuous_rl_probe.py`)
+
 - **`rl_probe.py` (DoorKey, Tabular Q-learning):**
   - Chuẩn hóa $R_{\text{norm}} = R / \max(1.0, \max\lvert R\rvert)$; khởi tạo lạc quan $Q = 1.0$; giảm dần $\epsilon$ và $\alpha$.
   - `tail_success_rate` = trung bình tỷ lệ thành công của 25% điểm đánh giá cuối, lấy trung bình qua các seed.
@@ -136,6 +143,7 @@
 - **Trích xuất CE khi trượt G5:** nếu probe không đạt ngưỡng, rollout chính sách vừa học để lấy quỹ đạo thất bại thực tế làm CE đưa vào `CEPool`.
 
 #### D. Bộ chấm Oracle độc lập (`cegr/solvers/verified_fix.py`)
+
 - **Mục tiêu:** Chấm reward cuối của mọi phương pháp, post-hoc, seed 3000.
 - **`verified_fix = True` khi cả ba điều kiện cùng đúng:**
   1. **Không bị hack (`no_hack_oracle`):**
@@ -150,7 +158,9 @@
 ### 2.3. Phân hệ Baseline Đối sánh (`cegr/baselines/`)
 
 #### A. EUREKA (`cegr/baselines/eureka/`)
-Bài báo gốc: *Ma et al., ICLR 2024* (bản triển khai này là bản rút gọn, xem Mục 6.2).
+
+Bài báo gốc: _Ma et al., ICLR 2024_ (bản triển khai này là bản rút gọn, xem Mục 6.2).
+
 - **Đánh giá khởi tạo:** nếu $R_0$ qua G1 (chỉ G1, không G2/G3/G4), chạy RL probe (DoorKey: 2500 × 3; seed luồng 1000) để lấy đường cong theo component và `task_success_rate` làm fitness của $R_0$.
 - **Tiến hóa:** $G = 2$ thế hệ, mỗi thế hệ $K = 2$ ứng viên độc lập sinh song song (tổng 4 mẫu). Nhiệt độ theo bảng 0.2: Thế hệ 1 dùng nhiệt độ sinh, Thế hệ 2 dùng nhiệt độ sửa. 〔Mục 7.1〕
 - **RL bắt buộc:** mọi ứng viên hợp lệ (qua G1) đều chạy RL đầy đủ; cộng dồn vào `rl_episodes`. $R_0$ cũng tính vào `rl_episodes`.
@@ -160,14 +170,16 @@ Bài báo gốc: *Ma et al., ICLR 2024* (bản triển khai này là bản rút 
 - **Cấm:** G2, G3, G4, DP attacker, continuous attacker, `verified_fix.py`.
 
 #### B. CARD & CARD_REFL (`cegr/baselines/card/`)
-Bài báo gốc: *Sun et al., 2024* (bản triển khai là biến thể TPE tĩnh, xem Mục 6.2).
+
+Bài báo gốc: _Sun et al., 2024_ (bản triển khai là biến thể TPE tĩnh, xem Mục 6.2).
+
 - **Bộ đệm tĩnh:** chỉ gồm $P_0$ (đúng định nghĩa ở 2.1B) trong suốt các vòng. Không chèn CE từ attacker hay probe.
 - **Cổng sử dụng:** G1 và TPE chế độ `strict`. Không G2, G4, G5.
 - **Dừng sớm:** nếu mọi cặp trong $P_0$ thỏa $G(\tau^+) > G(\tau^-)$ (`strict`), kết luận PASS và dừng.
 - **Ba khối feedback bắt buộc khi trượt (`feedback_generator.py`):**
-  1. *Process Feedback:* trạng thái thực thi và cảnh báo component thoái hóa (luôn 0 hoặc hằng số).
-  2. *Trajectory Feedback:* mean và std của tổng return và từng component trên nhóm $\tau^+$ so với $\tau^-$.
-  3. *Preference Feedback:* danh sách các cặp $(\tau^+, \tau^-) \in P_0$ bị xếp ngược ($G(\tau^+) \le G(\tau^-)$).
+  1. _Process Feedback:_ trạng thái thực thi và cảnh báo component thoái hóa (luôn 0 hoặc hằng số).
+  2. _Trajectory Feedback:_ mean và std của tổng return và từng component trên nhóm $\tau^+$ so với $\tau^-$.
+  3. _Preference Feedback:_ danh sách các cặp $(\tau^+, \tau^-) \in P_0$ bị xếp ngược ($G(\tau^+) \le G(\tau^-)$).
 - **`CARD` vs `CARD_REFL`:** `CARD` chỉ gửi feedback của vòng ngay trước; `CARD_REFL` nối toàn bộ feedback văn bản từ vòng 0 (feedback chấm $R_0$) đến vòng $i-1$. Không có lần gọi LLM bổ sung. Cờ cấu hình: `use_reflection_memory`.
 - **Reward cuối khi không PASS:** xem 2.4E.
 
@@ -176,6 +188,7 @@ Bài báo gốc: *Sun et al., 2024* (bản triển khai là biến thể TPE tĩ
 ### 2.4. Phân hệ Đề xuất CEGR (`cegr/synthesis/`)
 
 #### A. Vòng lặp chính (`runner.py`)
+
 1. **Architect:** sinh `anchors_v0` bằng LLM từ mô tả nhiệm vụ (không tính vào $N$).
 2. Chấm $R_0$ một lần bằng GateKeeper để sinh feedback ban đầu (không tính vào $N$). 〔Mục 7.2〕
 3. Lặp $i = 1 \dots N$:
@@ -186,7 +199,9 @@ Bài báo gốc: *Sun et al., 2024* (bản triển khai là biến thể TPE tĩ
 5. Các job được chạy theo wave để gộp batch cho vLLM; việc gộp batch không được thay đổi logic từng job.
 
 #### B. GateKeeper 5 cổng (`gatekeeper.py`)
+
 Kiểm tra từ rẻ đến đắt:
+
 - **G1 (Exec):** biên dịch AST an toàn, không `NaN`/`Inf`, $\lvert R\rvert \le 10^4$. Lỗi thì dừng ngay, trả về lỗi biên dịch.
 - **G2 (Static Anti-Hack, `static_antihack.py`):** (a) thiếu term goal, (b) hằng số dương vô điều kiện (survival bonus), (c) thưởng dương cho no-op, (d) shaping vượt độ lớn reward goal. **Chỉ trên Meta-World:** (e) thưởng thuận theo khoảng cách Euclid (`+norm(hand - goal)`) hoặc thưởng lớn cho vận tốc gây rung.
 - **G3 (TPE + CE pool + attacker):** TPE chế độ `margin` trên $P_0$ ∪ toàn bộ `CEPool`, và vượt `dp_attack` (DoorKey) hoặc `trajectory_attacker` (Meta-World). G3 phải thực sự chạy trên $P_0$ ở cả hai miền, không được bị bỏ qua.
@@ -199,33 +214,38 @@ Kiểm tra từ rẻ đến đắt:
 - **G5 (Short RL Probe):** theo 2.2C. Nếu trượt, rollout policy vừa học để trích CE.
 
 #### C. Kho phản ví dụ (`ce_pool.py`)
+
 - FIFO, dung lượng `POOL_MAX = 40`. Hai loại nhãn: `hack`, `under_signal`.
 - **Nguồn CE:** `hack`: attacker (DP/CEM), cặp nhiễu của $P_0$, rollout của probe, cặp đảo thứ tự ở G4; `under_signal`: cặp đúng thứ tự nhưng chênh dưới thr (G3/G4).
 - **Khử trùng lặp kép:** một CE bị coi là trùng nếu trùng **mã băm nội dung** (MD5 12 ký tự của `better_str|worse_str|type`) HOẶC trùng **khóa chữ ký** $(\text{type},\ \text{behavior\_signature},\ \text{progress\_pair})$, trong đó `behavior_signature` là hành động chiếm đa số của quỹ đạo khai thác (`pickup_loop`, `toggle_loop`, `gripper_spam`, ...) và `progress_pair` là cặp mức tiến độ của $(\tau^+, \tau^-)$. CE trùng bị bỏ, phần tử cũ giữ nguyên và không được đẩy lại vị trí FIFO. 〔Mục 7.7〕
 - Lưu đầy đủ mảng hành động `better`/`worse` (rời rạc) và `better_steps`/`worse_steps` (liên tục) để `replay` trên mọi reward mới, bằng chính chế độ `margin` của TPE.
 
 #### D. Assimilator (`assimilator.py`) và Dynamic Anchors (`dynamic_anchors.py`)
+
 - **Anchors:**
   - `anchors_v0` (do Architect sinh, gồm khoảng 6 mệnh đề): chạm goal cho tổng return lớn nhất; term tiến độ phải là một lần hoặc dạng hiệu thế năng $\Phi(s') - \Phi(s)$; đứng yên hoặc xoay tại chỗ không được thưởng dương; phải nhặt chìa trước khi tương tác cửa.
   - Nâng `v0` lên `v1` khi `Assimilator` phát hiện lỗ hổng đặc tả từ CE. Chế độ `noAnchors` khóa ở `v0`.
 - **Assimilator (dạng luật, không dùng LLM):**
   - Đầu vào: CE (nhãn `hack`/`under_signal`, chữ ký hành vi, bảng phân rã component trên $\tau^+$ vs $\tau^-$).
-  - Rút luật kinh nghiệm theo nhãn, ví dụ `hack` + chữ ký `toggle` → *"chỉ thưởng mở cửa một lần hoặc dùng hiệu thế năng trạng thái cửa"*; `under_signal` → *"tăng hệ số định hình cho mốc tiến độ bị phẳng"*.
+  - Rút luật kinh nghiệm theo nhãn, ví dụ `hack` + chữ ký `toggle` → _"chỉ thưởng mở cửa một lần hoặc dùng hiệu thế năng trạng thái cửa"_; `under_signal` → _"tăng hệ số định hình cho mốc tiến độ bị phẳng"_.
   - Cập nhật cả feedback cho Coder lẫn `anchors` (chế độ động).
   - Khi `noClass`, nhãn gộp thành `"generic"` nên chỉ sinh feedback chung.
 
 #### E. Reward cuối khi không PASS (áp dụng cho `CARD`, `CARD_REFL`, `CEGR`)
+
 - Nếu không vòng nào PASS: $R_{\text{final}}$ là ứng viên hợp lệ (qua G1) có **độ sâu cổng lớn nhất**. Độ sâu = số cổng liên tiếp đã qua tính từ G1 theo thứ tự G1→G2→G3→G4→G5, chỉ tính các cổng đang bật; trong Merge Mode, G2 FAIL thì độ sâu dừng ở 1 dù G3 PASS. Hòa độ sâu thì chọn ứng viên ở **vòng muộn nhất**. Nếu không có ứng viên nào qua G1 thì $R_{\text{final}} = R_0$. Quy tắc chỉ dựa vào kết quả cổng, **không** dùng Oracle. 〔Mục 7.6〕
 - Quy tắc áp dụng thống nhất cho `CARD`, `CARD_REFL`, `CEGR` và 6 ablation. Với `CARD`/`CARD_REFL` (chỉ có G1 và TPE `strict`) độ sâu chỉ có ít mức nên quy tắc suy biến thành "ứng viên qua G1 ở vòng muộn nhất". Vì vậy quy tắc này chỉ thực sự tạo khác biệt cho `CEGR` (tránh mất ứng viên tốt ở vòng giữa khi vòng cuối sửa quá tay) và phải được nêu rõ khi diễn giải kết quả.
 
 #### F. Sáu biến thể Ablation (`configs/ablations.yaml`)
+
 Cùng quy trình chuẩn, tắt đúng một thành phần:
-1. `CEGIS_noPool`: không tích lũy `CEPool` (chỉ $P_0$ và CE của vòng hiện tại; attacker vẫn chạy).
-2. `CEGIS_noAnchors`: giữ `anchors_v0`, không nâng lên `v1`.
-3. `CEGIS_noClass`: gộp nhãn thành `"generic"`.
-4. `CEGIS_noG2`: bỏ G2.
-5. `CEGIS_noG4`: bỏ G4.
-6. `CEGIS_noG5`: bỏ G5.
+
+1. `CEGR_noPool`: không tích lũy `CEPool` (chỉ $P_0$ và CE của vòng hiện tại; attacker vẫn chạy).
+2. `CEGR_noAnchors`: giữ `anchors_v0`, không nâng lên `v1`.
+3. `CEGR_noClass`: gộp nhãn thành `"generic"`.
+4. `CEGR_noG2`: bỏ G2.
+5. `CEGR_noG4`: bỏ G4.
+6. `CEGR_noG5`: bỏ G5.
 
 ---
 
@@ -241,14 +261,14 @@ Cùng quy trình chuẩn, tắt đúng một thành phần:
 
 ## 4. KIẾN TRÚC ĐA MIỀN (DoorKey ↔ Meta-World)
 
-| Thành phần | DoorKey (rời rạc) | Meta-World (liên tục) |
-| :--- | :--- | :--- |
-| State `s` | `agent_pos`, `agent_dir`, `has_key`, `door_open`, `goal_pos` | `hand_pos`, `obj_pos`, `goal_pos`, `gripper_open`, `obj_grasped`, `in_target` |
-| G2 thêm | (không) | thưởng thuận khoảng cách Euclid, thưởng vận tốc gây rung |
-| G3 attacker | `dp_attack` (DP chính xác) | `trajectory_attacker` (CEM + perturbation) |
-| G5 | Q-learning 1000 × 2 | SAC/PPO 20.000–50.000 steps |
-| Oracle chống hack | DP kép $T = 30, 60$, $V_{\text{succ}} - V_{\text{fail}} > 1\%\lvert V_{\text{succ}}\rvert$ | Attacker ngân sách mở rộng, $R_{\text{expert}} - R_{\text{exploit}}^{\max} > 1\%\lvert R_{\text{expert}}\rvert$ |
-| Phạm vi đã có số liệu | DoorKey 5x5 (báo cáo) | Chưa có số liệu |
+| Thành phần            | DoorKey (rời rạc)                                                                          | Meta-World (liên tục)                                                                                           |
+| :-------------------- | :----------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- |
+| State `s`             | `agent_pos`, `agent_dir`, `has_key`, `door_open`, `goal_pos`                               | `hand_pos`, `obj_pos`, `goal_pos`, `gripper_open`, `obj_grasped`, `in_target`                                   |
+| G2 thêm               | (không)                                                                                    | thưởng thuận khoảng cách Euclid, thưởng vận tốc gây rung                                                        |
+| G3 attacker           | `dp_attack` (DP chính xác)                                                                 | `trajectory_attacker` (CEM + perturbation)                                                                      |
+| G5                    | Q-learning 1000 × 2                                                                        | SAC/PPO 20.000–50.000 steps                                                                                     |
+| Oracle chống hack     | DP kép $T = 30, 60$, $V_{\text{succ}} - V_{\text{fail}} > 1\%\lvert V_{\text{succ}}\rvert$ | Attacker ngân sách mở rộng, $R_{\text{expert}} - R_{\text{exploit}}^{\max} > 1\%\lvert R_{\text{expert}}\rvert$ |
+| Phạm vi đã có số liệu | DoorKey 5x5 (báo cáo)                                                                      | Chưa có số liệu                                                                                                 |
 
 ---
 
@@ -278,24 +298,27 @@ Cùng quy trình chuẩn, tắt đúng một thành phần:
 ## 6. CÁC KHÁC BIỆT ĐÃ ĐƯỢC CHỦ Ý
 
 ### 6.1. Khác biệt giữa spec này và bản notebook đã sinh số liệu trong báo cáo
-Số liệu trong báo cáo `CARD-CEGIS` được sinh từ notebook; nếu code mới tuân thủ spec này thì các điểm sau làm số liệu **không còn tái lập chính xác** và cần chạy lại hoặc ghi chú khi so sánh:
 
-| Điểm | Báo cáo (notebook) | Spec này |
-| :--- | :--- | :--- |
-| Điều kiện dừng | PASS, hết $N$, hoặc pool không thêm phần tử mới sau `STALL_K = 2` vòng | Chỉ PASS hoặc hết $N$ |
-| Sandbox | Cấm import | Cho phép `math`, `numpy`, `typing` qua `__import__` an toàn |
-| Khóa dedup CE | Chữ ký hành vi | Hash nội dung **hoặc** khóa $(\text{type}, \text{signature}, \text{progress\_pair})$ |
-| G2 | Chỉ nêu luật cho DoorKey | Thêm luật riêng Meta-World |
-| Probe liên tục | Không có | SAC/PPO |
-| Reward cuối khi không PASS | Chưa được báo cáo mô tả | Độ sâu cổng lớn nhất, hòa thì vòng muộn nhất (2.4E) |
-| CE khi trượt G4 | Chưa được báo cáo mô tả | Mọi cặp vi phạm đều vào pool (2.4B) |
-| Eureka dừng sớm | Có thể có (giả thuyết giải thích 3,8 lần gọi; **chưa xác minh**) | Luôn đủ 2 × 2 = 4 mẫu sinh, không dừng sớm |
+Số liệu trong báo cáo `CEGR` được sinh từ notebook; nếu code mới tuân thủ spec này thì các điểm sau làm số liệu **không còn tái lập chính xác** và cần chạy lại hoặc ghi chú khi so sánh:
+
+| Điểm                       | Báo cáo (notebook)                                                     | Spec này                                                                             |
+| :------------------------- | :--------------------------------------------------------------------- | :----------------------------------------------------------------------------------- |
+| Điều kiện dừng             | PASS, hết $N$, hoặc pool không thêm phần tử mới sau `STALL_K = 2` vòng | Chỉ PASS hoặc hết $N$                                                                |
+| Sandbox                    | Cấm import                                                             | Cho phép `math`, `numpy`, `typing` qua `__import__` an toàn                          |
+| Khóa dedup CE              | Chữ ký hành vi                                                         | Hash nội dung **hoặc** khóa $(\text{type}, \text{signature}, \text{progress\_pair})$ |
+| G2                         | Chỉ nêu luật cho DoorKey                                               | Thêm luật riêng Meta-World                                                           |
+| Probe liên tục             | Không có                                                               | SAC/PPO                                                                              |
+| Reward cuối khi không PASS | Chưa được báo cáo mô tả                                                | Độ sâu cổng lớn nhất, hòa thì vòng muộn nhất (2.4E)                                  |
+| CE khi trượt G4            | Chưa được báo cáo mô tả                                                | Mọi cặp vi phạm đều vào pool (2.4B)                                                  |
+| Eureka dừng sớm            | Có thể có (giả thuyết giải thích 3,8 lần gọi; **chưa xác minh**)       | Luôn đủ 2 × 2 = 4 mẫu sinh, không dừng sớm                                           |
 
 ### 6.2. Khác biệt so với bài báo gốc (theo mô tả trong tài liệu dự án và hiểu biết của người soạn; cần đối chiếu lại với bài gốc trước khi trích dẫn)
-- **Eureka:** bài gốc dùng nhiều mẫu hơn mỗi vòng, nhiều vòng hơn, nhiệt độ cao hơn, nhiều mốc checkpoint hơn và bắt đầu từ reward rỗng. Ở đây $K = 2$, $G = 2$, 5 mốc, có $R_0$ cho sẵn, RL tabular. Phải gọi là *Eureka-style (simplified)*.
-- **CARD:** bài gốc có thêm Evaluator LLM, trajectory lấy từ quá trình huấn luyện và huấn luyện RL sau khi qua TPE. Ở đây là TPE tĩnh trên $P_0$ cố định, không huấn luyện RL. Phải gọi là *CARD-style (static TPE)*.
+
+- **Eureka:** bài gốc dùng nhiều mẫu hơn mỗi vòng, nhiều vòng hơn, nhiệt độ cao hơn, nhiều mốc checkpoint hơn và bắt đầu từ reward rỗng. Ở đây $K = 2$, $G = 2$, 5 mốc, có $R_0$ cho sẵn, RL tabular. Phải gọi là _Eureka-style (simplified)_.
+- **CARD:** bài gốc có thêm Evaluator LLM, trajectory lấy từ quá trình huấn luyện và huấn luyện RL sau khi qua TPE. Ở đây là TPE tĩnh trên $P_0$ cố định, không huấn luyện RL. Phải gọi là _CARD-style (static TPE)_.
 
 ### 6.3. Thiên lệch cần ghi trong báo cáo
+
 - Hack rate (DP) cuối cùng đo bằng cùng DP mà attacker G3 dùng, nên thiên lệch có lợi cho CEGR.
 - Fitness của Eureka (probe 2500 × 3 trên DoorKey) gần giống điều kiện RL của Oracle, nên có lợi cho Eureka về VF (khác seed).
 - Chỉ DoorKey 5x5 một layout; Meta-World chưa có số liệu; RQ4/RQ5 chưa kiểm chứng.
@@ -304,15 +327,15 @@ Số liệu trong báo cáo `CARD-CEGIS` được sinh từ notebook; nếu code
 
 ## 7. CÁC ĐIỂM CHƯA ĐƯỢC BÁO CÁO XÁC NHẬN (CẦN CHỐT TRONG CONFIG/CODE)
 
-| Mã | Nội dung đã chọn trong spec | Cần xác nhận |
-| :--- | :--- | :--- |
-| 7.1 | Cùng bảng nhiệt độ cho mọi phương pháp: sinh 0.95, sửa 0.35; Eureka Thế hệ 1 = sinh, Thế hệ 2 = sửa | Báo cáo chỉ nêu "sinh 0.95, sửa 0.35"; chưa nêu cách gán cho Eureka. Phiên bản spec trước từng ghi 0.7 cho Eureka |
-| 7.2 | $R_0$ được chấm một lần để sinh feedback vòng 1, không tính vào $N$ | Báo cáo không nêu rõ vòng 1 có feedback từ $R_0$ hay không |
-| 7.3 | $\gamma_{\text{TPE}} = \gamma_{\text{DP}}$ lấy từ config | Báo cáo chỉ nêu $\gamma = 1.0$ cho probe Oracle/Eureka |
-| 7.4 | $P_0$ = 4 cặp $\{(T_3,T_2),(T_2,T_1),(T_1,T_0),(T_3,T_0)\}$ + ≤ 20 cặp nhiễu; CARD dùng chung | Đây là quyết định thiết kế (3 cặp liền kề + 1 cặp neo) khớp con số "4 cặp" của báo cáo; báo cáo không nêu cặp cụ thể |
-| 7.5 | Ngưỡng G5 liên tục lấy từ `metaworld_config.yaml` | Bản spec đầu từng ghi 0.40, bản sau bỏ; Oracle 0.50 |
-| 7.6 | $R_{\text{final}}$ khi không PASS: ứng viên hợp lệ có độ sâu cổng lớn nhất, hòa thì vòng muộn nhất (CARD/CARD_REFL/CEGR); Eureka chọn trong mọi ứng viên đã sinh (hòa chọn sớm hơn) | Cả hai tài liệu trước đều chưa định nghĩa; ảnh hưởng trực tiếp hack rate và VF. Quy tắc "độ sâu" chỉ có ý nghĩa cho CEGR nên có thể bị phản biện là ưu ái CEGR; cân nhắc báo cáo thêm kết quả với quy tắc "vòng cuối" như phân tích độ nhạy |
-| 7.7 | Khóa chữ ký bổ sung `type` và `progress_pair`; CE trùng bị bỏ, không đẩy lại FIFO | Báo cáo chỉ nêu "khóa chữ ký"; chưa nêu xử lý khi trùng |
-| 7.8 | `recurrence_count` của baseline được dựng post-hoc bằng bộ kiểm hậu kiểm riêng | Báo cáo có cột này cho cả Eureka/CARD nhưng không mô tả cách đếm |
-| 7.9 | Số lần gọi LLM của Eureka phải đúng 4 mẫu sinh | Báo cáo ghi trung bình 3,8. Một giả thuyết hợp lý là bản cũ dừng sớm khi một ứng viên Thế hệ 1 qua ngưỡng probe, nhưng **chưa được xác minh**; cần kiểm tra log của notebook |
-| 7.10 | G4 xét mọi cặp có tiến độ khác nhau; CE trượt G4 đi vào pool cùng quỹ đạo (seed 2000) | Notebook có thể chỉ xét cặp mốc liền kề. CE từ G4 vào pool làm một phần quỹ đạo seed 2000 trở thành tập hồi quy của G3, nên G4 không còn hoàn toàn "độc lập" với G3 sau vòng đó; cần chấp nhận hoặc tách luồng seed |
+| Mã   | Nội dung đã chọn trong spec                                                                                                                                                         | Cần xác nhận                                                                                                                                                                                                                                |
+| :--- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 7.1  | Cùng bảng nhiệt độ cho mọi phương pháp: sinh 0.95, sửa 0.35; Eureka Thế hệ 1 = sinh, Thế hệ 2 = sửa                                                                                 | Báo cáo chỉ nêu "sinh 0.95, sửa 0.35"; chưa nêu cách gán cho Eureka. Phiên bản spec trước từng ghi 0.7 cho Eureka                                                                                                                           |
+| 7.2  | $R_0$ được chấm một lần để sinh feedback vòng 1, không tính vào $N$                                                                                                                 | Báo cáo không nêu rõ vòng 1 có feedback từ $R_0$ hay không                                                                                                                                                                                  |
+| 7.3  | $\gamma_{\text{TPE}} = \gamma_{\text{DP}}$ lấy từ config                                                                                                                            | Báo cáo chỉ nêu $\gamma = 1.0$ cho probe Oracle/Eureka                                                                                                                                                                                      |
+| 7.4  | $P_0$ = 4 cặp $\{(T_3,T_2),(T_2,T_1),(T_1,T_0),(T_3,T_0)\}$ + ≤ 20 cặp nhiễu; CARD dùng chung                                                                                       | Đây là quyết định thiết kế (3 cặp liền kề + 1 cặp neo) khớp con số "4 cặp" của báo cáo; báo cáo không nêu cặp cụ thể                                                                                                                        |
+| 7.5  | Ngưỡng G5 liên tục lấy từ `metaworld_config.yaml`                                                                                                                                   | Bản spec đầu từng ghi 0.40, bản sau bỏ; Oracle 0.50                                                                                                                                                                                         |
+| 7.6  | $R_{\text{final}}$ khi không PASS: ứng viên hợp lệ có độ sâu cổng lớn nhất, hòa thì vòng muộn nhất (CARD/CARD_REFL/CEGR); Eureka chọn trong mọi ứng viên đã sinh (hòa chọn sớm hơn) | Cả hai tài liệu trước đều chưa định nghĩa; ảnh hưởng trực tiếp hack rate và VF. Quy tắc "độ sâu" chỉ có ý nghĩa cho CEGR nên có thể bị phản biện là ưu ái CEGR; cân nhắc báo cáo thêm kết quả với quy tắc "vòng cuối" như phân tích độ nhạy |
+| 7.7  | Khóa chữ ký bổ sung `type` và `progress_pair`; CE trùng bị bỏ, không đẩy lại FIFO                                                                                                   | Báo cáo chỉ nêu "khóa chữ ký"; chưa nêu xử lý khi trùng                                                                                                                                                                                     |
+| 7.8  | `recurrence_count` của baseline được dựng post-hoc bằng bộ kiểm hậu kiểm riêng                                                                                                      | Báo cáo có cột này cho cả Eureka/CARD nhưng không mô tả cách đếm                                                                                                                                                                            |
+| 7.9  | Số lần gọi LLM của Eureka phải đúng 4 mẫu sinh                                                                                                                                      | Báo cáo ghi trung bình 3,8. Một giả thuyết hợp lý là bản cũ dừng sớm khi một ứng viên Thế hệ 1 qua ngưỡng probe, nhưng **chưa được xác minh**; cần kiểm tra log của notebook                                                                |
+| 7.10 | G4 xét mọi cặp có tiến độ khác nhau; CE trượt G4 đi vào pool cùng quỹ đạo (seed 2000)                                                                                               | Notebook có thể chỉ xét cặp mốc liền kề. CE từ G4 vào pool làm một phần quỹ đạo seed 2000 trở thành tập hồi quy của G3, nên G4 không còn hoàn toàn "độc lập" với G3 sau vòng đó; cần chấp nhận hoặc tách luồng seed                         |

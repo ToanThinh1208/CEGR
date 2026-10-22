@@ -12,7 +12,7 @@ COLORS = {
     "EUREKA": "#fd8d3c",
     "CARD": "#6baed6",
     "CARD_REFL": "#3182bd",
-    "CEGIS": "#08519c",
+    "CEGR": "#08519c",
     "CEGR": "#08519c",
 }
 
@@ -33,7 +33,7 @@ def fmt_ci(vals: Any) -> str:
 def generate_latex_tables(df_all: pd.DataFrame, out_tex_path: str):
     """Generates LaTeX code for Tables 1 to 4 and saves to out_tex_path."""
     os.makedirs(os.path.dirname(os.path.abspath(out_tex_path)), exist_ok=True)
-    m_main = ["ORIG", "EUREKA", "CARD", "CARD_REFL", "CEGIS"]
+    m_main = ["ORIG", "EUREKA", "CARD", "CARD_REFL", "CEGR"]
 
     # --- TABLE 1: MAIN RESULTS ---
     rows1 = []
@@ -54,7 +54,7 @@ def generate_latex_tables(df_all: pd.DataFrame, out_tex_path: str):
     df_t1 = pd.DataFrame(rows1)
 
     # --- TABLE 2: ABLATIONS ---
-    m_abl = ["CEGIS", "CEGIS_noPool", "CEGIS_noAnchors", "CEGIS_noClass", "CEGIS_noG2", "CEGIS_noG4", "CEGIS_noG5"]
+    m_abl = ["CEGR", "CEGR_noPool", "CEGR_noAnchors", "CEGR_noClass", "CEGR_noG2", "CEGR_noG4", "CEGR_noG5"]
     piv_ab = per_reward(df_all, "vf").astype(float) if "vf" in df_all else pd.DataFrame()
     rows2 = []
     for m in m_abl:
@@ -68,9 +68,9 @@ def generate_latex_tables(df_all: pd.DataFrame, out_tex_path: str):
             "Rounds-to-pass": f"{g.get('rounds_to_pass', pd.Series([0])).mean():.2f}",
             "RL episodes (K)": f"{g.get('rl_episodes', pd.Series([0])).mean()/1e3:.1f}",
         }
-        if m != "CEGIS" and not piv_ab.empty and "CEGIS" in piv_ab and m in piv_ab:
-            t = paired_test(piv_ab, "CEGIS", m)
-            r["Δ VF vs CEGIS (pp)"] = f"{t['delta']:+.1f} [{t['ci_lo']:+.1f}, {t['ci_hi']:+.1f}] p={t['p_val']:.3f}"
+        if m != "CEGR" and not piv_ab.empty and "CEGR" in piv_ab and m in piv_ab:
+            t = paired_test(piv_ab, "CEGR", m)
+            r["Δ VF vs CEGR (pp)"] = f"{t['delta']:+.1f} [{t['ci_lo']:+.1f}, {t['ci_hi']:+.1f}] p={t['p_val']:.3f}"
         rows2.append(r)
     df_t2 = pd.DataFrame(rows2)
 
@@ -83,7 +83,7 @@ def generate_latex_tables(df_all: pd.DataFrame, out_tex_path: str):
 def plot_evaluation_figures(df_jobs: pd.DataFrame, out_dir: str):
     """Generates 300 DPI publication plots (Figures 1 to 3)."""
     os.makedirs(out_dir, exist_ok=True)
-    m_main = ["ORIG", "EUREKA", "CARD", "CARD_REFL", "CEGIS"]
+    m_main = ["ORIG", "EUREKA", "CARD", "CARD_REFL", "CEGR"]
 
     # 1. Figure 1: Verified Fix & Non-hacked rate
     fig, ax = plt.subplots(figsize=(7, 4.2), dpi=300)
@@ -115,7 +115,7 @@ def plot_evaluation_figures(df_jobs: pd.DataFrame, out_dir: str):
 
     # 2. Figure 2: Recurrence and RL cost
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4), dpi=300)
-    for m in ["EUREKA", "CARD", "CARD_REFL", "CEGIS"]:
+    for m in ["EUREKA", "CARD", "CARD_REFL", "CEGR"]:
         sub = df_jobs[df_jobs["method"] == m]
         if sub.empty:
             continue

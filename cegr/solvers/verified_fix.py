@@ -216,7 +216,7 @@ def evaluate_verified_fix(env: Any, orig_an: Optional[Analysis], orig_code: str,
     probe_passed = True
     if run_probe and new_an.table is not None:
         curves = [
-            cached_learnability_probe(      # [CARD-CEGIS] có cache theo bảng reward
+            cached_learnability_probe(      # [CEGR] có cache theo bảng reward
                 env, new_an.table,
                 episodes=probe_episodes,
                 gamma=probe_gamma,
