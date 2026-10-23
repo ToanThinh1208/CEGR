@@ -132,6 +132,21 @@ def test_metaworld_milestones_and_ducktyped_gt_score():
     assert isinstance(act_score, float)
 
 
+def test_static_checks_metaworld_env_compatibility():
+    from cegr.synthesis.static_antihack import static_checks
+    env = make_metaworld_env("door-open-v2", horizon=50, use_mock=True)
+    def sample_reward(s, a, s2):
+        return {"step": -0.01, "goal": 10.0 if s2.get("in_target") else 0.0}
+    code = (
+        "def reward_components(s, a, s2):\n"
+        "    return {'step': -0.01, 'goal': 10.0 if s2.get('in_target') else 0.0}\n"
+    )
+    bad = static_checks(code, table=sample_reward, env=env)
+    assert isinstance(bad, list)
+    assert len(bad) == 0
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
+
 

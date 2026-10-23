@@ -120,12 +120,20 @@ def static_checks(code: str, table: Optional[Any] = None, env: Optional[Any] = N
             bad.append("positive_distance_exploit")
 
     # 4. Tabular environment checks (if table and env available)
-    if table is not None and env is not None and hasattr(env, "nxt") and hasattr(env, "terminal"):
+    if (
+        table is not None
+        and hasattr(table, "R")
+        and env is not None
+        and isinstance(env, DoorKeyEnv)
+        and getattr(env, "nxt", None) is not None
+        and getattr(env, "terminal", None) is not None
+        and getattr(env, "n", None) is not None
+    ):
         selfloop = (env.nxt == np.arange(env.n)[:, None]) & (~env.terminal[:, None])
         if np.any(table.R[selfloop] > 1e-9):
             bad.append("positive_reward_on_noop")
 
-        if hasattr(env, "goal_flag") and env.goal_flag.any():
+        if hasattr(env, "goal_flag") and env.goal_flag is not None and env.goal_flag.any():
             gmax = float(table.R[env.goal_flag].max())
             nongoal = table.R[(~env.goal_flag) & (~env.terminal[:, None])]
             if nongoal.size and float(nongoal.max()) >= gmax - 1e-9:

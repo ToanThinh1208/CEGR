@@ -22,9 +22,6 @@ class MetaWorldEnvWrapper(BaseEnv):
         self.horizon = horizon
         self.action_dim = 4
         self.use_mock = use_mock
-        self.terminal = None
-        self.goal_flag = None
-        self.nxt = None
         self._env = None
         self._init_inner_env()
 
