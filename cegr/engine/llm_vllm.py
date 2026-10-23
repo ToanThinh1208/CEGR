@@ -6,6 +6,9 @@ LLM_ENGINE = None
 _MOCK_LLM_HANDLER: Optional[Callable[[List[Dict[str, str]]], str]] = None
 
 
+_VLLM_INIT_ATTEMPTED = False
+
+
 def set_mock_llm(handler: Optional[Callable[[List[Dict[str, str]]], str]]):
     """Sets a deterministic mock handler for local tests and CPU debugging without vLLM."""
     global _MOCK_LLM_HANDLER
@@ -18,9 +21,12 @@ def init_llm(
     gpu_memory_utilization: float = 0.88,
     tensor_parallel_size: int = 2,
 ):
-    global LLM_ENGINE
+    global LLM_ENGINE, _VLLM_INIT_ATTEMPTED
     if LLM_ENGINE is not None:
         return LLM_ENGINE
+    if _VLLM_INIT_ATTEMPTED:
+        return None
+    _VLLM_INIT_ATTEMPTED = True
 
     try:
         import torch
@@ -82,23 +88,42 @@ def llm_batch_chat(
 
     engine = init_llm(model_id=model_id)
     if engine is None:
-        # Fallback dummy code if no vLLM and no mock handler set
-        default_code = (
-            "```python\ndef reward_components(s, a, s2):\n"
-            "    c = {}\n"
-            "    c['step'] = -0.01\n"
-            "    c['goal'] = 1.0 if at_goal(s2) else 0.0\n"
-            "    return c\n```"
-        )
-        return [
-            {
-                "text": default_code,
-                "prompt_tokens": 100,
-                "completion_tokens": 30,
+        # Fallback smart mock handler if no vLLM and no explicit mock handler set
+        results = []
+        for msgs in messages_list:
+            content_str = " ".join(m.get("content", "") for m in msgs)
+            if "metaworld" in content_str.lower() or "hand_pos" in content_str:
+                code_text = (
+                    "```python\n"
+                    "def reward_components(s, a, s2):\n"
+                    "    c = {}\n"
+                    "    c['step'] = -0.01\n"
+                    "    d = float(np.linalg.norm(np.array(s2['hand_pos']) - np.array(s2['obj_pos'])))\n"
+                    "    c['reach'] = -1.0 * d\n"
+                    "    c['goal'] = 10.0 if s2.get('in_target', False) else 0.0\n"
+                    "    return c\n"
+                    "```"
+                )
+            else:
+                code_text = (
+                    "```python\n"
+                    "def phi(st):\n"
+                    "    return 0.5 * (1.0 if st.has_key else 0.0) + 0.5 * (1.0 if st.door == DOOR_OPEN else 0.0)\n"
+                    "def reward_components(s, a, s2):\n"
+                    "    c = {}\n"
+                    "    c['step'] = -0.01\n"
+                    "    c['shaping'] = phi(s2) - phi(s)\n"
+                    "    c['goal'] = 1.0 if at_goal(s2) else 0.0\n"
+                    "    return c\n"
+                    "```"
+                )
+            results.append({
+                "text": code_text,
+                "prompt_tokens": len(content_str.split()),
+                "completion_tokens": len(code_text.split()),
                 "finish_reason": "stop",
-            }
-            for _ in messages_list
-        ]
+            })
+        return results
 
     from vllm import SamplingParams
 
