@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Optional
+import gc
 import json
 import numpy as np
 
@@ -312,6 +313,7 @@ class CegrRunner(BaseRunner):
         for r in reward_records:
             for s in range(n_samples):
                 results.append(self.run_single_job(r, s))
+                gc.collect()
         return results
 
     def run_wave_batch(
@@ -442,6 +444,7 @@ class CegrRunner(BaseRunner):
                             jb["experience"].append(r)
                     if self.cfg.get("anchors") == "dynamic":
                         jb["anchors_mgr"].update(invs)
+            gc.collect()
 
         # Final evaluation
         final_results = []

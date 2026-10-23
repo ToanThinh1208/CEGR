@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Optional
+import gc
 import numpy as np
 
 from cegr.core.base_runner import BaseRunner
@@ -355,7 +356,15 @@ class CardRunner(BaseRunner):
 
     def run_batch(self, reward_records: List[Dict[str, Any]], n_samples: int = 1) -> List[Dict[str, Any]]:
         results = []
+        total = len(reward_records) * n_samples
+        count = 0
+        method_label = "CARD_REFL" if self.use_reflection_memory else "CARD"
         for r in reward_records:
             for s in range(n_samples):
-                results.append(self.run_single_job(r, s))
+                count += 1
+                res = self.run_single_job(r, s)
+                results.append(res)
+                gc.collect()
+                if count % 10 == 0 or count == total:
+                    print(f"[{method_label}] Tiến độ: {count}/{total} jobs ({count/total*100:.1f}%)")
         return results

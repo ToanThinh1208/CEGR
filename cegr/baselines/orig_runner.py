@@ -1,4 +1,5 @@
 from typing import Any, Dict, List
+import gc
 import pandas as pd
 
 from cegr.core.base_runner import BaseRunner
@@ -54,7 +55,13 @@ class OrigRunner(BaseRunner):
 
     def run_batch(self, reward_records: List[Dict[str, Any]], n_samples: int = 1) -> List[Dict[str, Any]]:
         results = []
+        total = len(reward_records) * n_samples
+        count = 0
         for r in reward_records:
             for s in range(n_samples):
+                count += 1
                 results.append(self.run_single_job(r, s))
+                gc.collect()
+                if count % 20 == 0 or count == total:
+                    print(f"[ORIG] Tiến độ: {count}/{total} jobs ({count/total*100:.1f}%)")
         return results
