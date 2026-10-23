@@ -71,7 +71,7 @@ def count_recurrence(env: Any, kit: Any, table: Any, seen: Dict[str, Any]) -> in
         return 0
     from cegr.envs.doorkey import traj_return
     from cegr.core.tpe_evaluator import pair_margin, pair_violated
-    ret_t3 = traj_return(env, table, kit.refs["T3"]) if kit and hasattr(kit, "refs") else 1.0
+    ret_t3 = traj_return(env, table, kit.refs["T3"]) if kit and hasattr(kit, "refs") and "T3" in kit.refs else 1.0
     eps = max(1e-3, 0.02 * abs(ret_t3))
     return sum(
         1 for c in seen.values()

@@ -47,6 +47,27 @@ def pair_returns(env: Any, table: Any, ce: Dict[str, Any]) -> Tuple[float, float
         reward_fn = table
         b_steps = ce.get("better_steps") or (ce.get("better") if isinstance(ce.get("better"), list) and len(ce["better"]) > 0 and hasattr(ce["better"][0], "s") else None)
         w_steps = ce.get("worse_steps") or (ce.get("worse") if isinstance(ce.get("worse"), list) and len(ce["worse"]) > 0 and hasattr(ce["worse"][0], "s") else None)
+        if (not b_steps or not w_steps) and hasattr(env, "reset") and hasattr(env, "step"):
+            from cegr.envs.base_env import Step
+            def rollout_acts(acts):
+                s, _ = env.reset(seed=42)
+                stps = []
+                for t, a in enumerate(acts):
+                    s2, r, done, trunc, _ = env.step(a)
+                    g = bool(s2.get("in_target", False))
+                    stps.append(Step(t=t, s=s, a=a, s2=s2, r=r, comps={"goal": r}, goal=g))
+                    s = s2
+                    if g or done or trunc:
+                        break
+                return stps
+            b_acts = ce.get("better")
+            w_acts = ce.get("worse")
+            if isinstance(b_acts, (list, tuple)) and len(b_acts) > 0 and not isinstance(b_acts[0], (int, np.integer)):
+                try:
+                    b_steps = rollout_acts(b_acts)
+                    w_steps = rollout_acts(w_acts)
+                except Exception:
+                    pass
         if b_steps and w_steps:
             def eval_steps(steps):
                 tot = 0.0
@@ -111,8 +132,8 @@ def count_recurrence(env: Any, table: Any, seen: Dict[str, Any], refs: Optional[
     """
     if table is None or not seen:
         return 0
-    from cegr.envs.doorkey import DoorKeyEnv, traj_return
-    if isinstance(env, DoorKeyEnv) and refs and "T3" in refs and hasattr(table, "R"):
+    from cegr.envs.doorkey import traj_return
+    if refs and "T3" in refs:
         ret_t3 = traj_return(env, table, refs["T3"])
     else:
         ret_t3 = 1.0

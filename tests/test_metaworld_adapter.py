@@ -87,5 +87,51 @@ def test_static_antihack_on_metaworld_mutants():
     assert "positive_distance_exploit" in bad, f"Failed to detect positive distance exploit: {bad}"
 
 
+def test_traj_return_continuous_metaworld():
+    from cegr.envs.doorkey import traj_return
+    from cegr.synthesis.runner import build_metaworld_kit, count_recurrence
+    from cegr.synthesis.ce_pool import make_ce
+
+    env = make_metaworld_env("door-open-v2", horizon=50, use_mock=True)
+    kit = build_metaworld_kit(env)
+
+    def sample_reward(s, a, s2):
+        return {"step": -0.01, "goal": 10.0 if s2.get("in_target") else 0.0}
+
+    # 1. Test traj_return with MetaWorldEnvWrapper and step list (T3)
+    ret_t3 = traj_return(env, sample_reward, kit.refs["T3"])
+    assert isinstance(ret_t3, float)
+
+    # 2. Test traj_return with MetaWorldEnvWrapper and raw action list
+    act_list = [np.array([0.0, 0.1, -0.05, -0.8], dtype=np.float32) for _ in range(10)]
+    ret_acts = traj_return(env, sample_reward, act_list)
+    assert isinstance(ret_acts, float)
+
+    # 3. Test count_recurrence with MetaWorldEnvWrapper, kit, and seen CEs
+    seen = {
+        "p0_test": make_ce(
+            kit.refs["T3"], kit.refs["T0"], "p0", 0, "T3>T0",
+            better_steps=kit.refs["T3"], worse_steps=kit.refs["T0"]
+        )
+    }
+    recur = count_recurrence(env, kit, sample_reward, seen)
+    assert isinstance(recur, int)
+
+
+def test_metaworld_milestones_and_ducktyped_gt_score():
+    env = make_metaworld_env("door-open-v2", horizon=50, use_mock=True)
+    trajs = env.get_milestone_trajectories()
+    assert len(trajs) == 4
+    # Check gt_score increases along milestone stages T0 < T1 < T2 < T3
+    scores = [env.gt_score(t) for t in trajs]
+    assert scores[0] <= scores[1] <= scores[2] <= scores[3]
+
+    # Check gt_score with raw action arrays (duck typing)
+    act_list = [np.array([0.0, 0.1, -0.05, -0.8], dtype=np.float32) for _ in range(50)]
+    act_score = env.gt_score(act_list)
+    assert isinstance(act_score, float)
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
+

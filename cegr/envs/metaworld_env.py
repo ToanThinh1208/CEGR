@@ -22,6 +22,9 @@ class MetaWorldEnvWrapper(BaseEnv):
         self.horizon = horizon
         self.action_dim = 4
         self.use_mock = use_mock
+        self.terminal = None
+        self.goal_flag = None
+        self.nxt = None
         self._env = None
         self._init_inner_env()
 
@@ -71,8 +74,11 @@ class MetaWorldEnvWrapper(BaseEnv):
         hand_obj_dist = float(np.linalg.norm(hand_pos - obj_pos))
         obj_goal_dist = float(np.linalg.norm(obj_pos - goal_pos))
 
+        hand_near_obj = hand_obj_dist < 0.08
         obj_grasped = hand_obj_dist < 0.04 and gripper_open < 0.5
         in_target = obj_goal_dist < 0.05
+        if info and (bool(info.get("success", False)) or float(info.get("success", 0.0)) > 0.0):
+            in_target = True
 
         return {
             "hand_pos": tuple(float(x) for x in hand_pos),
@@ -81,6 +87,7 @@ class MetaWorldEnvWrapper(BaseEnv):
             "gripper_open": float(np.clip(gripper_open, 0.0, 1.0)),
             "obj_grasped": bool(obj_grasped),
             "in_target": bool(in_target),
+            "hand_near_obj": bool(hand_near_obj),
             "hand_obj_dist": hand_obj_dist,
             "obj_goal_dist": obj_goal_dist,
             "raw_obs": obs,
@@ -117,6 +124,38 @@ class MetaWorldEnvWrapper(BaseEnv):
         state_dict = self.extract_state_dict(obs, info)
         return state_dict, float(reward), bool(state_dict["in_target"]), bool(truncated), info
 
+    def get_milestone_trajectories(self, seed: int = 42) -> List[List[Step]]:
+        """
+        Returns milestone trajectories [T0, T1, T2, T3] for progress verification.
+        T0: Moving away from object / goal
+        T1: Approaching / hovering near object
+        T2: Approaching object / partial grasp
+        T3: Expert reaching goal (in_target)
+        """
+        def rollout_actions(action_list):
+            s, _ = self.reset(seed=seed)
+            steps = []
+            for t, a in enumerate(action_list):
+                s2, r, done, trunc, _ = self.step(a)
+                g = bool(s2.get("in_target", False))
+                steps.append(Step(t=t, s=s, a=a, s2=s2, r=1.0 if g else 0.0, comps={"goal": 1.0 if g else 0.0}, goal=g))
+                s = s2
+                if g or done or trunc:
+                    break
+            return steps
+
+        t0_actions = [np.array([-0.5, -0.5, 0.2, 0.0], dtype=np.float32) for _ in range(50)]
+        t1_actions = [np.array([0.0, 0.0, 0.0, 0.8 if i % 2 == 0 else -0.8], dtype=np.float32) for i in range(50)]
+        t2_actions = [np.array([0.0, 0.1, -0.05, 0.0], dtype=np.float32) for _ in range(50)]
+        t3_actions = [np.array([0.0, 0.1, -0.05, -0.8], dtype=np.float32) for _ in range(50)]
+
+        return [
+            rollout_actions(t0_actions),
+            rollout_actions(t1_actions),
+            rollout_actions(t2_actions),
+            rollout_actions(t3_actions),
+        ]
+
     def gt_score(self, trajectory: List[Any]) -> float:
         """
         Calculates ground-truth milestone score:
@@ -127,6 +166,19 @@ class MetaWorldEnvWrapper(BaseEnv):
         """
         if not trajectory:
             return 0.0
+
+        # Duck typing: if trajectory is an action list (not Step or dict), roll it out
+        first = trajectory[0]
+        if isinstance(first, (np.ndarray, list, tuple)) and not hasattr(first, "s") and not (isinstance(first, dict) and "s" in first):
+            s, _ = self.reset(seed=42)
+            steps = []
+            for t, a in enumerate(trajectory):
+                s2, r, done, trunc, _ = self.step(a)
+                steps.append(Step(t=t, s=s, a=a, s2=s2, r=r, comps={"goal": r}, goal=bool(s2.get("in_target", False))))
+                s = s2
+                if done or trunc or s2.get("in_target", False):
+                    break
+            trajectory = steps
 
         def _get_st(item):
             if hasattr(item, "s2") and isinstance(item.s2, dict):

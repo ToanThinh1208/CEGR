@@ -266,7 +266,57 @@ def replay(env: DoorKeyEnv, actions: List[int]) -> Tuple[List[int], List[int], b
     return idxs, used, reached
 
 
-def traj_return(env: DoorKeyEnv, table: Any, actions: List[int], gamma: float = 1.0) -> float:
+def traj_return(env: Any, table: Any, actions: Any, gamma: float = 1.0) -> float:
+    if not actions:
+        return 0.0
+
+    first = actions[0]
+
+    # Duck-typing: continuous domain trajectory (List[Step] or List[dict])
+    if hasattr(first, "s") or (isinstance(first, dict) and "s" in first):
+        tot = 0.0
+        for t, st in enumerate(actions):
+            s = getattr(st, "s", None) if hasattr(st, "s") else st.get("s", {})
+            a = getattr(st, "a", None) if hasattr(st, "a") else st.get("a", None)
+            s2 = getattr(st, "s2", None) if hasattr(st, "s2") else st.get("s2", {})
+            if callable(table):
+                comps = table(s, a, s2)
+                r = sum(float(v) for v in comps.values()) if isinstance(comps, dict) else float(comps)
+            elif hasattr(table, "R"):
+                r = float(getattr(st, "r", 0.0))
+            else:
+                r = 0.0
+            tot += (gamma ** t) * r
+            g = getattr(st, "goal", None) if hasattr(st, "goal") else st.get("goal", False)
+            if not g and isinstance(s2, dict) and s2.get("in_target", False):
+                g = True
+            if g:
+                break
+        return float(tot)
+
+    # Duck-typing: list of continuous action vectors on environments with reset/step
+    if isinstance(first, (np.ndarray, list, tuple)) and not isinstance(first, (int, np.integer)):
+        if hasattr(env, "reset") and hasattr(env, "step"):
+            s, _ = env.reset(seed=42)
+            tot = 0.0
+            for t, a in enumerate(actions):
+                s2, _, done, trunc, _ = env.step(a)
+                if callable(table):
+                    comps = table(s, a, s2)
+                    r = sum(float(v) for v in comps.values()) if isinstance(comps, dict) else float(comps)
+                else:
+                    r = 0.0
+                tot += (gamma ** t) * r
+                g = bool(s2.get("in_target", False))
+                s = s2
+                if g or done or trunc:
+                    break
+            return float(tot)
+
+    # Discrete DoorKey environment with tabular table
+    if not hasattr(env, "terminal") or not hasattr(env, "nxt") or not hasattr(table, "R"):
+        return 0.0
+
     i, tot = 0, 0.0
     for t, a in enumerate(actions):
         if env.terminal[i]:
@@ -277,7 +327,7 @@ def traj_return(env: DoorKeyEnv, table: Any, actions: List[int], gamma: float = 
         i = int(env.nxt[i, a])
         if g:
             break
-    return tot
+    return float(tot)
 
 
 def traj_level(env: Any, actions: Any) -> int:
