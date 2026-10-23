@@ -104,16 +104,19 @@ def evaluate_verified_fix(env: Any, orig_an: Optional[Analysis], orig_code: str,
 
         # Run continuous trajectory attacker with extended budget
         attacker = ContinuousTrajectoryAttacker(env, cem_iterations=10, population_size=40)
-        ref_steps = []
-        s, _ = env.reset(seed=SEED)
-        for t in range(50):
-            a = np.array([0.0, 0.1, -0.05, -0.8], dtype=np.float32)
-            s2, _, done, trunc, _ = env.step(a)
-            g = bool(s2.get("in_target", False))
-            ref_steps.append(Step(t=t, s=s, a=a, s2=s2, r=1.0 if g else 0.0, comps={"goal": 1.0 if g else 0.0}, goal=g))
-            s = s2
-            if g or done:
-                break
+        if hasattr(env, "get_milestone_trajectories"):
+            ref_steps = env.get_milestone_trajectories(seed=SEED)[3]
+        else:
+            ref_steps = []
+            s, _ = env.reset(seed=SEED)
+            for t in range(50):
+                a = np.array([0.0, 0.5, -0.7, 0.0], dtype=np.float32)
+                s2, _, done, trunc, _ = env.step(a)
+                g = bool(s2.get("in_target", False))
+                ref_steps.append(Step(t=t, s=s, a=a, s2=s2, r=1.0 if g else 0.0, comps={"goal": 1.0 if g else 0.0}, goal=g))
+                s = s2
+                if g or done:
+                    break
 
         # Calculate expert return
         ref_return = 0.0
@@ -139,7 +142,7 @@ def evaluate_verified_fix(env: Any, orig_an: Optional[Analysis], orig_code: str,
         # Subgoal shaping check for Meta-World milestones
         subgoal_ok = True
         if hasattr(env, "get_milestone_trajectories"):
-            m_trajs = env.get_milestone_trajectories()
+            m_trajs = env.get_milestone_trajectories(seed=SEED)
             m_returns = []
             for m_t in m_trajs:
                 r_m = 0.0
@@ -150,7 +153,8 @@ def evaluate_verified_fix(env: Any, orig_an: Optional[Analysis], orig_code: str,
             subgoal_ok = all(m_returns[i] < m_returns[i+1] for i in range(len(m_returns)-1))
         res["subgoal_shaping"] = subgoal_ok
 
-        probe_passed = bool(tail >= tail_thr)
+        tail_thr_cont = float(cfg.get("tail_threshold", cfg.get("tail_thr", 0.40)))
+        probe_passed = bool(tail >= tail_thr_cont)
         res["tier1_safe_aligned"] = bool(res["loose_dp"] and probe_passed)
         res["tier2_dense_vf"] = bool(res["tier1_safe_aligned"] and subgoal_ok)
         res["verified_fix"] = bool(res["tier2_dense_vf"] if require_dense else res["tier1_safe_aligned"])

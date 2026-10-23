@@ -124,10 +124,10 @@ class MetaWorldEnvWrapper(BaseEnv):
     def get_milestone_trajectories(self, seed: int = 42) -> List[List[Step]]:
         """
         Returns milestone trajectories [T0, T1, T2, T3] for progress verification.
-        T0: Moving away from object / goal
-        T1: Approaching / hovering near object
-        T2: Approaching object / partial grasp
-        T3: Expert reaching goal (in_target)
+        T0: Moving away from object / goal (progress level 0)
+        T1: Approaching / hovering near object (progress level 1)
+        T2: Approaching object / partial grasp (progress level 2)
+        T3: Expert reaching goal (in_target = True, progress level 3)
         """
         def rollout_actions(action_list):
             s, _ = self.reset(seed=seed)
@@ -141,10 +141,61 @@ class MetaWorldEnvWrapper(BaseEnv):
                     break
             return steps
 
-        t0_actions = [np.array([-0.5, -0.5, 0.2, 0.0], dtype=np.float32) for _ in range(50)]
-        t1_actions = [np.array([0.0, 0.0, 0.0, 0.8 if i % 2 == 0 else -0.8], dtype=np.float32) for i in range(50)]
-        t2_actions = [np.array([0.0, 0.1, -0.05, 0.0], dtype=np.float32) for _ in range(50)]
-        t3_actions = [np.array([0.0, 0.1, -0.05, -0.8], dtype=np.float32) for _ in range(50)]
+        # Check if real MetaWorld policy is available
+        if self._env is not None and not self.use_mock:
+            try:
+                import metaworld.policies as mp
+                pol_map = {
+                    "door-open-v2": getattr(mp, "SawyerDoorOpenV2Policy", None),
+                    "reach-v2": getattr(mp, "SawyerReachV2Policy", None),
+                    "pick-place-v2": getattr(mp, "SawyerPickPlaceV2Policy", None),
+                }
+                policy_cls = pol_map.get(self.task_name)
+                if policy_cls is not None:
+                    pol = policy_cls()
+                    s, _ = self.reset(seed=seed)
+                    expert_acts = []
+                    for _ in range(min(self.horizon, 150)):
+                        raw_obs = s.get("raw_obs", np.zeros(39, dtype=np.float32))
+                        act = pol.get_action(raw_obs)
+                        expert_acts.append(act)
+                        s, _, done, trunc, _ = self.step(act)
+                        if s.get("in_target", False) or done or trunc:
+                            break
+                    if len(expert_acts) >= 10:
+                        t3_acts = expert_acts
+                        t2_acts = expert_acts[:len(expert_acts)//2] + [np.zeros(4, dtype=np.float32)] * (len(expert_acts) - len(expert_acts)//2)
+                        t1_acts = expert_acts[:len(expert_acts)//4] + [np.zeros(4, dtype=np.float32)] * (len(expert_acts) - len(expert_acts)//4)
+                        t0_acts = [np.array([-0.5, -0.5, 0.2, 0.0], dtype=np.float32) for _ in range(50)]
+                        return [
+                            rollout_actions(t0_acts),
+                            rollout_actions(t1_acts),
+                            rollout_actions(t2_acts),
+                            rollout_actions(t3_acts),
+                        ]
+            except Exception:
+                pass
+
+        # Deterministic kinematic milestones matching mock physics
+        if "reach" in self.task_name:
+            t0_actions = [np.array([-0.5, -0.5, 0.2, 0.0], dtype=np.float32) for _ in range(50)]
+            t1_actions = [np.array([0.0, 0.5, -0.75, 0.0], dtype=np.float32) for _ in range(4)] + [np.zeros(4, dtype=np.float32) for _ in range(46)]
+            t2_actions = [np.array([0.0, 0.5, -0.75, 0.0], dtype=np.float32) for _ in range(7)] + [np.zeros(4, dtype=np.float32) for _ in range(43)]
+            t3_actions = [np.array([0.0, 0.5, -0.75, 0.0], dtype=np.float32) for _ in range(10)]
+        else:
+            # door-open-v2 and pick-place-v2:
+            # Stage 1: Hand reaches object handle at [0.0, 0.70, 0.06] (dist < 0.04)
+            # Stage 2: Gripper closes (< 0.5) to grasp object
+            # Stage 3: Hand moves to goal_pos [0.20, 0.70, 0.15], achieving in_target = True
+            reach_acts = [np.array([0.0, 0.5, -0.7, 0.0], dtype=np.float32) for _ in range(10)]
+            grasp_acts = [np.array([0.0, 0.0, 0.0, -1.0], dtype=np.float32) for _ in range(10)]
+            pull_acts = [np.array([1.0, 0.0, 0.55, -1.0], dtype=np.float32) for _ in range(10)]
+            idle_grasp = [np.array([0.0, 0.0, 0.0, -1.0], dtype=np.float32) for _ in range(30)]
+
+            t0_actions = [np.array([-0.5, -0.5, 0.2, 0.0], dtype=np.float32) for _ in range(50)]
+            t1_actions = reach_acts + [np.zeros(4, dtype=np.float32) for _ in range(40)]
+            t2_actions = reach_acts + grasp_acts + idle_grasp
+            t3_actions = reach_acts + grasp_acts + pull_acts
 
         return [
             rollout_actions(t0_actions),
@@ -156,10 +207,10 @@ class MetaWorldEnvWrapper(BaseEnv):
     def gt_score(self, trajectory: List[Any]) -> float:
         """
         Calculates ground-truth milestone score:
-          0 = far from object
-          1 = reached object
-          2 = grasped/manipulated object
-          3 = reached target goal
+          0 = far from object (progress level 0)
+          1 = reached object (progress level 1)
+          2 = grasped/manipulated object (progress level 2)
+          3 = reached target goal (progress level 3)
         """
         if not trajectory:
             return 0.0

@@ -266,27 +266,36 @@ def build_p0_pairs(env: Any, seed: int = 1000, max_noisy: int = 20) -> List[Dict
                 })
     else:
         from cegr.envs.base_env import Step
-        def rollout_actions(action_list):
-            s, _ = env.reset(seed=seed)
-            steps = []
-            for t, a in enumerate(action_list):
-                s2, r, done, trunc, _ = env.step(a)
-                g = bool(s2.get("in_target", False))
-                steps.append(Step(t=t, s=s, a=a, s2=s2, r=1.0 if g else 0.0, comps={"goal": 1.0 if g else 0.0}, goal=g))
-                s = s2
-                if g or done:
-                    break
-            return steps
+        if hasattr(env, "get_milestone_trajectories"):
+            m_trajs = env.get_milestone_trajectories(seed=seed)
+            t0_steps, t1_steps, t2_steps, t3_steps = m_trajs[0], m_trajs[1], m_trajs[2], m_trajs[3]
+        else:
+            def rollout_actions(action_list):
+                s, _ = env.reset(seed=seed)
+                steps = []
+                for t, a in enumerate(action_list):
+                    s2, r, done, trunc, _ = env.step(a)
+                    g = bool(s2.get("in_target", False))
+                    steps.append(Step(t=t, s=s, a=a, s2=s2, r=1.0 if g else 0.0, comps={"goal": 1.0 if g else 0.0}, goal=g))
+                    s = s2
+                    if g or done:
+                        break
+                return steps
 
-        t3_actions = [np.array([0.0, 0.1, -0.05, -0.8], dtype=np.float32) for _ in range(50)]
-        t2_actions = [np.array([0.0, 0.1, -0.05, 0.0], dtype=np.float32) for _ in range(50)]
-        t1_actions = [np.array([0.0, 0.0, 0.0, 0.8 if i % 2 == 0 else -0.8], dtype=np.float32) for i in range(50)]
-        t0_actions = [np.array([-0.5, -0.5, 0.2, 0.0], dtype=np.float32) for _ in range(50)]
+            reach_acts = [np.array([0.0, 0.5, -0.7, 0.0], dtype=np.float32) for _ in range(10)]
+            grasp_acts = [np.array([0.0, 0.0, 0.0, -1.0], dtype=np.float32) for _ in range(10)]
+            pull_acts = [np.array([1.0, 0.0, 0.55, -1.0], dtype=np.float32) for _ in range(10)]
+            idle_grasp = [np.array([0.0, 0.0, 0.0, -1.0], dtype=np.float32) for _ in range(30)]
 
-        t3_steps = rollout_actions(t3_actions)
-        t2_steps = rollout_actions(t2_actions)
-        t1_steps = rollout_actions(t1_actions)
-        t0_steps = rollout_actions(t0_actions)
+            t0_actions = [np.array([-0.5, -0.5, 0.2, 0.0], dtype=np.float32) for _ in range(50)]
+            t1_actions = reach_acts + [np.zeros(4, dtype=np.float32) for _ in range(40)]
+            t2_actions = reach_acts + grasp_acts + idle_grasp
+            t3_actions = reach_acts + grasp_acts + pull_acts
+
+            t0_steps = rollout_actions(t0_actions)
+            t1_steps = rollout_actions(t1_actions)
+            t2_steps = rollout_actions(t2_actions)
+            t3_steps = rollout_actions(t3_actions)
 
         base = [
             (t3_steps, t2_steps, "T3>T2"),
@@ -302,9 +311,19 @@ def build_p0_pairs(env: Any, seed: int = 1000, max_noisy: int = 20) -> List[Dict
 
         # Generate continuous noisy perturbations (up to max_noisy)
         rng = np.random.default_rng(seed)
+        t3_actions = [st.a for st in t3_steps]
         for k in range(min(max_noisy, 20)):
-            noisy_acts = [a + rng.normal(0, 0.15, size=a.shape).astype(np.float32) for a in t3_actions]
-            noisy_steps = rollout_actions(noisy_acts)
+            s, _ = env.reset(seed=seed + 100 + k)
+            noisy_steps = []
+            for t, a in enumerate(t3_actions):
+                noise = rng.normal(0, 0.20, size=a.shape).astype(np.float32)
+                act = np.clip(a + noise, -1.0, 1.0)
+                s2, r, done, trunc, _ = env.step(act)
+                g = bool(s2.get("in_target", False))
+                noisy_steps.append(Step(t=t, s=s, a=act, s2=s2, r=1.0 if g else 0.0, comps={"goal": 1.0 if g else 0.0}, goal=g))
+                s = s2
+                if g or done or trunc:
+                    break
             pairs.append({
                 "better": t3_steps, "worse": noisy_steps,
                 "better_steps": t3_steps, "worse_steps": noisy_steps,

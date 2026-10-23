@@ -122,14 +122,56 @@ def test_metaworld_milestones_and_ducktyped_gt_score():
     env = make_metaworld_env("door-open-v2", horizon=50, use_mock=True)
     trajs = env.get_milestone_trajectories()
     assert len(trajs) == 4
-    # Check gt_score increases along milestone stages T0 < T1 < T2 < T3
+    # Check gt_score strictly increases along milestone stages T0 < T1 < T2 < T3
     scores = [env.gt_score(t) for t in trajs]
-    assert scores[0] <= scores[1] <= scores[2] <= scores[3]
+    assert scores[0] < scores[1] < scores[2] < scores[3], f"Milestone scores not strictly increasing: {scores}"
+    assert trajs[3][-1].goal is True, "T3 expert trajectory must reach in_target goal"
 
     # Check gt_score with raw action arrays (duck typing)
-    act_list = [np.array([0.0, 0.1, -0.05, -0.8], dtype=np.float32) for _ in range(50)]
+    act_list = [st.a for st in trajs[3]]
     act_score = env.gt_score(act_list)
     assert isinstance(act_score, float)
+    assert act_score >= 3.0
+
+
+def test_gatekeeper_metaworld_valid_and_exploit_rewards():
+    from cegr.synthesis.runner import build_metaworld_kit
+    from cegr.synthesis.gatekeeper import GateKeeper, run_gatekeeper
+    from cegr.synthesis.ce_pool import CEPool
+
+    env = make_metaworld_env("door-open-v2", horizon=50, use_mock=True)
+    kit = build_metaworld_kit(env)
+    gk = GateKeeper(env, kit)
+    pool = CEPool(max_size=40)
+
+    # 1. Valid shaped reward: should PASS Gate 1, 2, 3
+    valid_code = (
+        "def reward_components(s, a, s2):\n"
+        "    c = {}\n"
+        "    c['step'] = -0.01\n"
+        "    d = float(np.linalg.norm(np.array(s2['hand_pos']) - np.array(s2['obj_pos'])))\n"
+        "    c['reach'] = -1.0 * d\n"
+        "    c['grasp'] = 2.0 if s2.get('obj_grasped', False) else 0.0\n"
+        "    c['goal'] = 10.0 if s2.get('in_target', False) else 0.0\n"
+        "    return c\n"
+    )
+    res_valid = run_gatekeeper(valid_code, {"gates": [1, 2, 3]}, pool, rnd=0, env=env, kit=kit, gk=gk)
+    assert res_valid["passed"] is True, f"Valid reward failed GateKeeper: {res_valid}"
+    assert res_valid["gates_passed"] == 3
+
+    # 2. Exploit hover reward: should FAIL at Gate 3 with hack violation
+    exploit_code = (
+        "def reward_components(s, a, s2):\n"
+        "    c = {}\n"
+        "    c['step'] = -0.01\n"
+        "    d = float(np.linalg.norm(np.array(s2['hand_pos']) - np.array(s2['obj_pos'])))\n"
+        "    c['near_handle'] = 5.0 if d < 0.08 else 0.0\n"
+        "    c['goal'] = 2.0 if s2.get('in_target', False) else 0.0\n"
+        "    return c\n"
+    )
+    res_exploit = run_gatekeeper(exploit_code, {"gates": [1, 2, 3]}, pool, rnd=0, env=env, kit=kit, gk=gk)
+    assert res_exploit["passed"] is False, "Exploit reward should not pass GateKeeper"
+    assert res_exploit["failed_gate"] == 3
 
 
 def test_static_checks_metaworld_env_compatibility():

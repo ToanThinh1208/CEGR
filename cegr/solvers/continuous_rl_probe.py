@@ -63,66 +63,81 @@ class ContinuousRLProbe:
         curve = []
         succ_history = []
         comp_history: Dict[str, List[float]] = {}
+        batch_size = 5
 
-        # Policy optimization loop
+        # Policy optimization loop with batch advantage baseline
         while step_count < total_steps:
-            s, _ = self.env.reset(seed=seed + step_count)
-            ep_return = 0.0
-            ep_steps = 0
-            ep_states, ep_actions, ep_h1, ep_h2, ep_rewards = [], [], [], [], []
-            ep_succ = False
-            ep_comp: Dict[str, float] = {}
-
-            for _ in range(min(self.env.horizon, 100)):
-                raw_obs = s.get("raw_obs", np.zeros(obs_dim, dtype=np.float32))
-                a_pred, h1, h2 = forward(raw_obs)
-                a = np.clip(a_pred + rng.normal(0, 0.15, size=act_dim), -1.0, 1.0)
-                s2, _, done, trunc, _ = self.env.step(a)
-                comps = reward_fn(s, a, s2)
-                if not isinstance(comps, dict):
-                    comps = {"total": float(comps)}
-                r = sum(float(v) for v in comps.values())
-
-                for k, v in comps.items():
-                    ep_comp[k] = ep_comp.get(k, 0.0) + float(v)
-
-                ep_states.append(raw_obs)
-                ep_actions.append(a)
-                ep_h1.append(h1)
-                ep_h2.append(h2)
-                ep_rewards.append(r)
-                ep_return += r
-                ep_steps += 1
-                step_count += 1
-                s = s2
-                if s2.get("in_target", False):
-                    ep_succ = True
+            batch_trajs = []
+            for _ in range(batch_size):
+                if step_count >= total_steps:
                     break
-                if done or trunc:
-                    break
+                s, _ = self.env.reset(seed=seed + step_count)
+                ep_return = 0.0
+                ep_steps = 0
+                ep_states, ep_actions, ep_h1, ep_h2, ep_rewards = [], [], [], [], []
+                ep_succ = False
+                ep_comp: Dict[str, float] = {}
 
-            succ_history.append(1.0 if ep_succ else 0.0)
-            for k, v in ep_comp.items():
-                comp_history.setdefault(k, []).append(v)
+                for _ in range(min(self.env.horizon, 100)):
+                    raw_obs = s.get("raw_obs", np.zeros(obs_dim, dtype=np.float32))
+                    a_pred, h1, h2 = forward(raw_obs)
+                    noise = rng.normal(0, 0.15, size=act_dim).astype(np.float32)
+                    a = np.clip(a_pred + noise, -1.0, 1.0)
+                    s2, _, done, trunc, _ = self.env.step(a)
+                    comps = reward_fn(s, a, s2)
+                    if not isinstance(comps, dict):
+                        comps = {"total": float(comps)}
+                    r = sum(float(v) for v in comps.values())
 
-            # Gradient update with discounted returns
-            if ep_steps > 0:
-                G = 0.0
-                returns = []
-                for r in reversed(ep_rewards):
-                    G = r + self.gamma * G
-                    returns.insert(0, G)
-                returns = np.array(returns, dtype=np.float32)
-                std_ret = float(np.std(returns))
-                norm_returns = (returns - float(np.mean(returns))) / (std_ret + 1e-8) if std_ret > 1e-6 else returns
+                    for k, v in comps.items():
+                        ep_comp[k] = ep_comp.get(k, 0.0) + float(v)
 
-                g_W1, g_b1 = np.zeros_like(W1), np.zeros_like(b1)
-                g_W2, g_b2 = np.zeros_like(W2), np.zeros_like(b2)
-                g_W3, g_b3 = np.zeros_like(W3), np.zeros_like(b3)
+                    ep_states.append(raw_obs)
+                    ep_actions.append(a)
+                    ep_h1.append(h1)
+                    ep_h2.append(h2)
+                    ep_rewards.append(r)
+                    ep_return += r
+                    ep_steps += 1
+                    step_count += 1
+                    s = s2
+                    if s2.get("in_target", False):
+                        ep_succ = True
+                        break
+                    if done or trunc:
+                        break
 
-                for st_obs, act, h1, h2, adv in zip(ep_states, ep_actions, ep_h1, ep_h2, norm_returns):
+                succ_history.append(1.0 if ep_succ else 0.0)
+                for k, v in ep_comp.items():
+                    comp_history.setdefault(k, []).append(v)
+                curve.append(ep_return)
+
+                batch_trajs.append({
+                    "states": ep_states,
+                    "actions": ep_actions,
+                    "h1": ep_h1,
+                    "h2": ep_h2,
+                    "total_return": ep_return,
+                })
+
+            if not batch_trajs:
+                break
+
+            # Batch Advantage Normalization across trajectories in batch
+            all_ep_returns = np.array([tr["total_return"] for tr in batch_trajs], dtype=np.float32)
+            mean_ret = float(np.mean(all_ep_returns))
+            std_ret = float(np.std(all_ep_returns)) + 1e-6
+
+            g_W1, g_b1 = np.zeros_like(W1), np.zeros_like(b1)
+            g_W2, g_b2 = np.zeros_like(W2), np.zeros_like(b2)
+            g_W3, g_b3 = np.zeros_like(W3), np.zeros_like(b3)
+            total_batch_steps = sum(len(tr["states"]) for tr in batch_trajs)
+
+            for tr in batch_trajs:
+                traj_adv = (tr["total_return"] - mean_ret) / std_ret
+                for st_obs, act, h1, h2 in zip(tr["states"], tr["actions"], tr["h1"], tr["h2"]):
                     pred = np.tanh(W3 @ h2 + b3)
-                    delta3 = (act - pred) * (1.0 - pred ** 2) * adv
+                    delta3 = (act - pred) * (1.0 - pred ** 2) * traj_adv
                     g_W3 += np.outer(delta3, h2)
                     g_b3 += delta3
 
@@ -134,15 +149,14 @@ class ContinuousRLProbe:
                     g_W1 += np.outer(delta1, st_obs)
                     g_b1 += delta1
 
-                lr = self.learning_rate
-                W3 += lr * np.clip(g_W3 / ep_steps, -1.0, 1.0)
-                b3 += lr * np.clip(g_b3 / ep_steps, -1.0, 1.0)
-                W2 += lr * np.clip(g_W2 / ep_steps, -1.0, 1.0)
-                b2 += lr * np.clip(g_b2 / ep_steps, -1.0, 1.0)
-                W1 += lr * np.clip(g_W1 / ep_steps, -1.0, 1.0)
-                b1 += lr * np.clip(g_b1 / ep_steps, -1.0, 1.0)
-
-            curve.append(ep_return)
+            lr = self.learning_rate
+            scale = max(1, total_batch_steps)
+            W3 += lr * np.clip(g_W3 / scale, -1.0, 1.0)
+            b3 += lr * np.clip(g_b3 / scale, -1.0, 1.0)
+            W2 += lr * np.clip(g_W2 / scale, -1.0, 1.0)
+            b2 += lr * np.clip(g_b2 / scale, -1.0, 1.0)
+            W1 += lr * np.clip(g_W1 / scale, -1.0, 1.0)
+            b1 += lr * np.clip(g_b1 / scale, -1.0, 1.0)
 
         # Evaluation rollouts
         from cegr.envs.base_env import Step

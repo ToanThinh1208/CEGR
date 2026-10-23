@@ -146,34 +146,43 @@ class GateKeeper:
             ref_steps = getattr(self.kit, "expert_steps", None)
             if not ref_steps:
                 if self._cont_expert_steps is None:
-                    def rollout_actions(action_list):
-                        s, _ = self.env.reset(seed=42)
-                        steps = []
-                        for t, a in enumerate(action_list):
-                            s2, r, done, trunc, _ = self.env.step(a)
-                            g = bool(s2.get("in_target", False))
-                            steps.append(Step(t=t, s=s, a=a, s2=s2, r=1.0 if g else 0.0, comps={"goal": 1.0 if g else 0.0}, goal=g))
-                            s = s2
-                            if g or done:
-                                break
-                        return steps
+                    if hasattr(self.env, "get_milestone_trajectories"):
+                        m_trajs = self.env.get_milestone_trajectories()
+                        t0_steps, t1_steps, t2_steps, t3_steps = m_trajs[0], m_trajs[1], m_trajs[2], m_trajs[3]
+                    else:
+                        def rollout_actions(action_list):
+                            s, _ = self.env.reset(seed=42)
+                            steps = []
+                            for t, a in enumerate(action_list):
+                                s2, r, done, trunc, _ = self.env.step(a)
+                                g = bool(s2.get("in_target", False))
+                                steps.append(Step(t=t, s=s, a=a, s2=s2, r=1.0 if g else 0.0, comps={"goal": 1.0 if g else 0.0}, goal=g))
+                                s = s2
+                                if g or done:
+                                    break
+                            return steps
 
-                    t3_actions = [np.array([0.0, 0.1, -0.05, -0.8], dtype=np.float32) for _ in range(50)]
-                    t2_actions = [np.array([0.0, 0.1, -0.05, 0.0], dtype=np.float32) for _ in range(50)]
-                    t1_actions = [np.array([0.0, 0.0, 0.0, 0.8 if i % 2 == 0 else -0.8], dtype=np.float32) for i in range(50)]
-                    t0_actions = [np.array([-0.5, -0.5, 0.2, 0.0], dtype=np.float32) for _ in range(50)]
+                        reach_acts = [np.array([0.0, 0.5, -0.7, 0.0], dtype=np.float32) for _ in range(10)]
+                        grasp_acts = [np.array([0.0, 0.0, 0.0, -1.0], dtype=np.float32) for _ in range(10)]
+                        pull_acts = [np.array([1.0, 0.0, 0.55, -1.0], dtype=np.float32) for _ in range(10)]
+                        idle_grasp = [np.array([0.0, 0.0, 0.0, -1.0], dtype=np.float32) for _ in range(30)]
 
-                    t3_steps = rollout_actions(t3_actions)
-                    t2_steps = rollout_actions(t2_actions)
-                    t1_steps = rollout_actions(t1_actions)
-                    t0_steps = rollout_actions(t0_actions)
+                        t0_actions = [np.array([-0.5, -0.5, 0.2, 0.0], dtype=np.float32) for _ in range(50)]
+                        t1_actions = reach_acts + [np.zeros(4, dtype=np.float32) for _ in range(40)]
+                        t2_actions = reach_acts + grasp_acts + idle_grasp
+                        t3_actions = reach_acts + grasp_acts + pull_acts
+
+                        t0_steps = rollout_actions(t0_actions)
+                        t1_steps = rollout_actions(t1_actions)
+                        t2_steps = rollout_actions(t2_actions)
+                        t3_steps = rollout_actions(t3_actions)
 
                     self._cont_expert_steps = t3_steps
                     self._cont_p0 = [
-                        make_ce(t3_steps, t2_steps, "p0", 0, "T3>T2"),
-                        make_ce(t2_steps, t1_steps, "p0", 0, "T2>T1"),
-                        make_ce(t1_steps, t0_steps, "p0", 0, "T1>T0"),
-                        make_ce(t3_steps, t0_steps, "p0", 0, "T3>T0"),
+                        make_ce(t3_steps, t2_steps, "p0", 0, "T3>T2", better_steps=t3_steps, worse_steps=t2_steps),
+                        make_ce(t2_steps, t1_steps, "p0", 0, "T2>T1", better_steps=t2_steps, worse_steps=t1_steps),
+                        make_ce(t1_steps, t0_steps, "p0", 0, "T1>T0", better_steps=t1_steps, worse_steps=t0_steps),
+                        make_ce(t3_steps, t0_steps, "p0", 0, "T3>T0", better_steps=t3_steps, worse_steps=t0_steps),
                     ]
                 ref_steps = self._cont_expert_steps
 
