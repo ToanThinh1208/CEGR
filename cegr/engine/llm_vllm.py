@@ -142,7 +142,7 @@ def llm_batch_chat(
         seed_val = int(seeds[0]) if seeds else 42
         params_list = SamplingParams(temperature=temperature, max_tokens=max_tokens, stop=["```\n\n"], seed=seed_val)
 
-    outputs = engine.generate(prompts, params_list, use_tqdm=True)
+    outputs = engine.generate(prompts, params_list, use_tqdm=False)
     results = []
     for out in outputs:
         results.append({
