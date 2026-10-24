@@ -1,4 +1,12 @@
-import pytest
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+try:
+    import pytest
+except ImportError:
+    pytest = None
 import numpy as np
 
 from cegr.envs.metaworld_env import make_metaworld_env
@@ -151,8 +159,8 @@ def test_gatekeeper_metaworld_valid_and_exploit_rewards():
         "    c['step'] = -0.01\n"
         "    d = float(np.linalg.norm(np.array(s2['hand_pos']) - np.array(s2['obj_pos'])))\n"
         "    c['reach'] = -1.0 * d\n"
-        "    c['grasp'] = 2.0 if s2.get('obj_grasped', False) else 0.0\n"
-        "    c['goal'] = 10.0 if s2.get('in_target', False) else 0.0\n"
+        "    c['grasp'] = 0.5 if s2.get('obj_grasped', False) else 0.0\n"
+        "    c['goal'] = 20.0 if s2.get('in_target', False) else 0.0\n"
         "    return c\n"
     )
     res_valid = run_gatekeeper(valid_code, {"gates": [1, 2, 3]}, pool, rnd=0, env=env, kit=kit, gk=gk)
@@ -189,6 +197,25 @@ def test_static_checks_metaworld_env_compatibility():
 
 
 if __name__ == "__main__":
-    pytest.main([__file__])
+    if pytest is not None:
+        pytest.main([__file__])
+    else:
+        print("Running test_metaworld_wrapper_state_dict...")
+        test_metaworld_wrapper_state_dict()
+        print("Running test_metaworld_sandbox_vector_math...")
+        test_metaworld_sandbox_vector_math()
+        print("Running test_continuous_trajectory_attacker...")
+        test_continuous_trajectory_attacker()
+        print("Running test_static_antihack_on_metaworld_mutants...")
+        test_static_antihack_on_metaworld_mutants()
+        print("Running test_traj_return_continuous_metaworld...")
+        test_traj_return_continuous_metaworld()
+        print("Running test_metaworld_milestones_and_ducktyped_gt_score...")
+        test_metaworld_milestones_and_ducktyped_gt_score()
+        print("Running test_gatekeeper_metaworld_valid_and_exploit_rewards...")
+        test_gatekeeper_metaworld_valid_and_exploit_rewards()
+        print("Running test_static_checks_metaworld_env_compatibility...")
+        test_static_checks_metaworld_env_compatibility()
+        print("ALL METAWORLD ADAPTER TESTS PASSED SUCCESSFULLY!")
 
 

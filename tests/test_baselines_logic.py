@@ -1,4 +1,12 @@
-import pytest
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+try:
+    import pytest
+except ImportError:
+    pytest = None
 
 from cegr.envs.doorkey import make_env
 from cegr.engine.llm_vllm import set_mock_llm
@@ -201,6 +209,21 @@ def test_eureka_prompts_match_eureka_spec():
 
 
 if __name__ == "__main__":
-    pytest.main([__file__])
+    if pytest is not None:
+        pytest.main([__file__])
+    else:
+        print("Running test_eureka_execution_and_budget...")
+        test_eureka_execution_and_budget()
+        print("Running test_card_execution_and_budget...")
+        test_card_execution_and_budget()
+        print("Running test_card_metaworld_execution...")
+        test_card_metaworld_execution()
+        print("Running test_cegr_metaworld_execution...")
+        test_cegr_metaworld_execution()
+        print("Running test_card_prompts_reuse_common_prompt...")
+        test_card_prompts_reuse_common_prompt()
+        print("Running test_eureka_prompts_match_eureka_spec...")
+        test_eureka_prompts_match_eureka_spec()
+        print("ALL BASELINES LOGIC TESTS PASSED SUCCESSFULLY!")
 
 

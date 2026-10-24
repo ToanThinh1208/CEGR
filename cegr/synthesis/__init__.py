@@ -10,6 +10,12 @@ from cegr.synthesis.dataset import (
     generate_natural_rewards,
     MUTANT_FAMILIES,
     NATURAL_PERSONAS,
+    MUTANT_FAMILIES_METAWORLD,
+    NATURAL_PERSONAS_METAWORLD,
+    METAWORLD_TASK_DESCS,
+    get_metaworld_api_desc,
+    build_calibrated_mutants_metaworld,
+    generate_natural_rewards_metaworld,
 )
 
 __all__ = [
@@ -33,4 +39,10 @@ __all__ = [
     "generate_natural_rewards",
     "MUTANT_FAMILIES",
     "NATURAL_PERSONAS",
+    "MUTANT_FAMILIES_METAWORLD",
+    "NATURAL_PERSONAS_METAWORLD",
+    "METAWORLD_TASK_DESCS",
+    "get_metaworld_api_desc",
+    "build_calibrated_mutants_metaworld",
+    "generate_natural_rewards_metaworld",
 ]

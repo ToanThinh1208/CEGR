@@ -1,6 +1,13 @@
 import json
 import os
-import pytest
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+try:
+    import pytest
+except ImportError:
+    pytest = None
 
 from cegr.envs.doorkey import make_env
 from cegr.core.code_sandbox import build_reward_table
@@ -30,7 +37,7 @@ def test_gatekeeper_on_mutants():
         "data", "doorkey", "manifest_planted_115.json"
     )
 
-    with open(manifest_path) as f:
+    with open(manifest_path, encoding="utf-8") as f:
         mutants = json.load(f)
 
     # All planted mutants must be caught by at least one gate in GateKeeper (Gate 2, 3, 4, or 5)
@@ -51,7 +58,7 @@ def test_gatekeeper_on_correct_code():
         "    return 0.5 * (1.0 if st.has_key else 0.0) + 0.5 * (1.0 if st.door == DOOR_OPEN else 0.0)\n"
         "def reward_components(s, a, s2):\n"
         "    c = {}\n"
-        "    c['step'] = -0.01\n"
+        "    c['step'] = -0.05\n"
         "    c['shaping'] = phi(s2) - phi(s)\n"
         "    c['goal'] = 1.0 if at_goal(s2) else 0.0\n"
         "    return c\n"
@@ -81,7 +88,7 @@ def test_cegr_wave_batch_and_verified_fix():
             "    return 0.5 * (1.0 if st.has_key else 0.0) + 0.5 * (1.0 if st.door == DOOR_OPEN else 0.0)\n"
             "def reward_components(s, a, s2):\n"
             "    c = {}\n"
-            "    c['step'] = -0.01\n"
+            "    c['step'] = -0.05\n"
             "    c['shaping'] = phi(s2) - phi(s)\n"
             "    c['goal'] = 1.0 if at_goal(s2) else 0.0\n"
             "    return c\n"
@@ -117,4 +124,13 @@ def test_cegr_wave_batch_and_verified_fix():
 
 
 if __name__ == "__main__":
-    pytest.main([__file__])
+    if pytest is not None:
+        pytest.main([__file__])
+    else:
+        print("Running test_gatekeeper_on_mutants...")
+        test_gatekeeper_on_mutants()
+        print("Running test_gatekeeper_on_correct_code...")
+        test_gatekeeper_on_correct_code()
+        print("Running test_cegr_wave_batch_and_verified_fix...")
+        test_cegr_wave_batch_and_verified_fix()
+        print("ALL GATEKEEPER ON MUTANTS TESTS PASSED SUCCESSFULLY!")

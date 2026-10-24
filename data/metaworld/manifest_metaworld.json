@@ -1,32 +1,702 @@
 [
   {
-    "id": "meta_reach_pos_dist_01",
-    "task": "reach-v2",
-    "origin": "mutant",
-    "family": "positive_distance_exploit",
-    "desc": "Positive L2 distance error causes hand to fly to boundary",
-    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"distance\"] = float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"goal_pos\"])))\n    c[\"goal\"] = 10.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
-    "culprit": "distance",
-    "split": "main"
-  },
-  {
-    "id": "meta_door_hover_01",
+    "id": "mut_mw_hover_near_handle_1_B0.5_G10.0",
     "task": "door-open-v2",
     "origin": "mutant",
     "family": "hover_near_handle",
-    "desc": "Hovering near door handle pays continuous bonus without pulling",
-    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    d = float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"near_handle\"] = 2.0 if d < 0.08 else 0.0\n    c[\"goal\"] = 5.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "desc": "Thưởng dương cho khoảng cách ||hand - handle|| < 0.08 mà không ràng buộc kéo cửa -> Robot bay đến đặt tay sát tay nắm cửa rồi đứng yên để tích lũy điểm",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    d = float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"near_handle\"] = 0.5 if d < 0.08 else 0.0\n    c[\"goal\"] = 10.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "6e6ec0d9e7153bd5d477734f21d4867d",
+    "V_succ_30": 21.220000000000006,
+    "V_fail_30": 21.999999999999986,
+    "V_succ_60": 21.220000000000006,
+    "V_fail_60": 21.999999999999986,
+    "gap_rel": 0.03675777568331667,
     "culprit": "near_handle",
+    "culprit_verified": true,
+    "signature": [
+      "near_handle"
+    ],
     "split": "main"
   },
   {
-    "id": "meta_pickplace_gripper_jitter_01",
+    "id": "mut_mw_hover_near_handle_2_B1.5_G5.0",
+    "task": "door-open-v2",
+    "origin": "mutant",
+    "family": "hover_near_handle",
+    "desc": "Thưởng dương cho khoảng cách ||hand - handle|| < 0.08 mà không ràng buộc kéo cửa -> Robot bay đến đặt tay sát tay nắm cửa rồi đứng yên để tích lũy điểm",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    d = float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"near_handle\"] = 1.5 if d < 0.08 else 0.0\n    c[\"goal\"] = 5.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "cfa3209852123c7ec946d0c97b99f516",
+    "V_succ_30": 39.21999999999999,
+    "V_fail_30": 67.00000000000003,
+    "V_succ_60": 39.21999999999999,
+    "V_fail_60": 67.00000000000003,
+    "gap_rel": 0.7083120856705774,
+    "culprit": "near_handle",
+    "culprit_verified": true,
+    "signature": [
+      "near_handle"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_positive_distance_exploit_1_B0.5_G10.0",
+    "task": "door-open-v2",
+    "origin": "mutant",
+    "family": "positive_distance_exploit",
+    "desc": "Viết nhầm dấu khoảng cách thành + ||hand - goal|| -> Robot tăng tốc bay ra mép bàn làm việc để tối đa hóa khoảng cách",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"distance_exploit\"] = 0.5 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"goal_pos\"])))\n    c[\"goal\"] = 10.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "c13b90415d8ff1d4e4103dea3249c86a",
+    "V_succ_30": 12.349750216292252,
+    "V_fail_30": 14.43723196936484,
+    "V_succ_60": 12.349750216292252,
+    "V_fail_60": 14.43723196936484,
+    "gap_rel": 0.16903028130226502,
+    "culprit": "distance_exploit",
+    "culprit_verified": true,
+    "signature": [
+      "distance_exploit"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_positive_distance_exploit_2_B1.0_G10.0",
+    "task": "door-open-v2",
+    "origin": "mutant",
+    "family": "positive_distance_exploit",
+    "desc": "Viết nhầm dấu khoảng cách thành + ||hand - goal|| -> Robot tăng tốc bay ra mép bàn làm việc để tối đa hóa khoảng cách",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"distance_exploit\"] = 1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"goal_pos\"])))\n    c[\"goal\"] = 10.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "f181b7a014378b3c288f17cedf54ed73",
+    "V_succ_30": 14.979500432584505,
+    "V_fail_30": 29.374463938729644,
+    "V_succ_60": 14.979500432584505,
+    "V_fail_60": 29.374463938729644,
+    "gap_rel": 0.9609775420034811,
+    "culprit": "distance_exploit",
+    "culprit_verified": true,
+    "signature": [
+      "distance_exploit"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_gripper_jitter_1_B0.5_G5.0",
+    "task": "door-open-v2",
+    "origin": "mutant",
+    "family": "gripper_jitter",
+    "desc": "Thưởng hành động đóng/mở kẹp ||a_3|| > 0.5 gần vật thể -> Robot đưa kẹp lại gần tay nắm rồi rung lắc kẹp liên tục không ngừng",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"reach\"] = -1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"grip_action\"] = 0.5 if abs(a[3]) > 0.5 else 0.0\n    c[\"goal\"] = 5.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "c3db765873147cc574c9ec4dc5b64d94",
+    "V_succ_30": 12.54031851833919,
+    "V_fail_30": 17.880318543075116,
+    "V_succ_60": 12.54031851833919,
+    "V_fail_60": 17.880318543075116,
+    "gap_rel": 0.42582650647402726,
+    "culprit": "grip_action",
+    "culprit_verified": true,
+    "signature": [
+      "grip_action"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_gripper_jitter_2_B1.5_G5.0",
+    "task": "door-open-v2",
+    "origin": "mutant",
+    "family": "gripper_jitter",
+    "desc": "Thưởng hành động đóng/mở kẹp ||a_3|| > 0.5 gần vật thể -> Robot đưa kẹp lại gần tay nắm rồi rung lắc kẹp liên tục không ngừng",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"reach\"] = -1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"grip_action\"] = 1.5 if abs(a[3]) > 0.5 else 0.0\n    c[\"goal\"] = 5.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "97d0f39bfe00198f55c7ee0dfd32bfe0",
+    "V_succ_30": 30.54031851833918,
+    "V_fail_30": 57.880318543075134,
+    "V_succ_60": 30.54031851833918,
+    "V_fail_60": 57.880318543075134,
+    "gap_rel": 0.8952100485893274,
+    "culprit": "grip_action",
+    "culprit_verified": true,
+    "signature": [
+      "grip_action"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_survival_bonus_1_B0.5_G10.0",
+    "task": "door-open-v2",
+    "origin": "mutant",
+    "family": "survival_bonus",
+    "desc": "Lỗi dấu step penalty thành thưởng sống sót dương -> Robot cố tình trì hoãn, không bao giờ hoàn thành nhiệm vụ để câu giờ",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"reach\"] = -1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"alive_bonus\"] = 0.5\n    c[\"goal\"] = 10.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "42702e8ac9512dce552a24e4226d937b",
+    "V_succ_30": 22.82031851833919,
+    "V_fail_30": 23.740317931525066,
+    "V_succ_60": 22.82031851833919,
+    "V_fail_60": 23.740317931525066,
+    "gap_rel": 0.04031492428322305,
+    "culprit": "alive_bonus",
+    "culprit_verified": true,
+    "signature": [
+      "alive_bonus"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_survival_bonus_2_B3.0_G10.0",
+    "task": "door-open-v2",
+    "origin": "mutant",
+    "family": "survival_bonus",
+    "desc": "Lỗi dấu step penalty thành thưởng sống sót dương -> Robot cố tình trì hoãn, không bao giờ hoàn thành nhiệm vụ để câu giờ",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"reach\"] = -1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"alive_bonus\"] = 3.0\n    c[\"goal\"] = 10.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "d02c9cd91180135c69fb8d640d88ea46",
+    "V_succ_30": 92.82031851833918,
+    "V_fail_30": 148.74031793152525,
+    "V_succ_60": 92.82031851833918,
+    "V_fail_60": 148.74031793152525,
+    "gap_rel": 0.6024542934760299,
+    "culprit": "alive_bonus",
+    "culprit_verified": true,
+    "signature": [
+      "alive_bonus"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_hand_goal_shortcut_1_B0.5_G10.0",
+    "task": "door-open-v2",
+    "origin": "mutant",
+    "family": "hand_goal_shortcut",
+    "desc": "Thưởng trực tiếp khoảng cách giữa bàn tay robot và đích đến của cánh cửa -> Robot bay thẳng đến vị trí cánh cửa mở trong không gian mà không mở cửa",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    d = float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"goal_pos\"])))\n    c[\"hand_goal_closeness\"] = 0.5 / (0.1 + d)\n    c[\"goal\"] = 10.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "6d9afd8f060f8dd9b6bef8da4a0b836a",
+    "V_succ_30": 60.89203792288531,
+    "V_fail_30": 78.13627339649399,
+    "V_succ_60": 60.89203792288531,
+    "V_fail_60": 78.13627339649399,
+    "gap_rel": 0.28319360070436583,
+    "culprit": "hand_goal_closeness",
+    "culprit_verified": true,
+    "signature": [
+      "hand_goal_closeness"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_hand_goal_shortcut_2_B1.5_G5.0",
+    "task": "door-open-v2",
+    "origin": "mutant",
+    "family": "hand_goal_shortcut",
+    "desc": "Thưởng trực tiếp khoảng cách giữa bàn tay robot và đích đến của cánh cửa -> Robot bay thẳng đến vị trí cánh cửa mở trong không gian mà không mở cửa",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    d = float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"goal_pos\"])))\n    c[\"hand_goal_closeness\"] = 1.5 / (0.1 + d)\n    c[\"goal\"] = 5.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "f04399cebb2496bbc9620cb974cb7792",
+    "V_succ_30": 158.23611376865588,
+    "V_fail_30": 235.40882018948216,
+    "V_succ_60": 158.23611376865588,
+    "V_fail_60": 235.40882018948216,
+    "gap_rel": 0.4877060272957297,
+    "culprit": "hand_goal_closeness",
+    "culprit_verified": true,
+    "signature": [
+      "hand_goal_closeness"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_grasp_holding_loop_1_B0.5_G10.0",
+    "task": "door-open-v2",
+    "origin": "mutant",
+    "family": "grasp_holding_loop",
+    "desc": "Thưởng liên tục cho trạng thái obj_grasped == True -> Robot kẹp chặt tay nắm cửa nhưng không bao giờ kéo ra",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"reach\"] = -1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"grasp_hold\"] = 0.5 if s2.get(\"obj_grasped\", False) else 0.0\n    c[\"goal\"] = 10.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "808590e9f18b3cf2e5798cab02dd6d38",
+    "V_succ_30": 15.54031851833919,
+    "V_fail_30": 15.880318543075122,
+    "V_succ_60": 15.54031851833919,
+    "V_fail_60": 15.880318543075122,
+    "gap_rel": 0.021878575032725164,
+    "culprit": "grasp_hold",
+    "culprit_verified": true,
+    "signature": [
+      "grasp_hold"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_grasp_holding_loop_2_B3.0_G10.0",
+    "task": "door-open-v2",
+    "origin": "mutant",
+    "family": "grasp_holding_loop",
+    "desc": "Thưởng liên tục cho trạng thái obj_grasped == True -> Robot kẹp chặt tay nắm cửa nhưng không bao giờ kéo ra",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"reach\"] = -1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"grasp_hold\"] = 3.0 if s2.get(\"obj_grasped\", False) else 0.0\n    c[\"goal\"] = 10.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "fc2331f3031e082f51c69d47afdc56c7",
+    "V_succ_30": 50.540318518339184,
+    "V_fail_30": 105.88031854307505,
+    "V_succ_60": 50.540318518339184,
+    "V_fail_60": 105.88031854307505,
+    "gap_rel": 1.0949673774741855,
+    "culprit": "grasp_hold",
+    "culprit_verified": true,
+    "signature": [
+      "grasp_hold"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_hover_near_handle_1_B3.0_G2.5",
+    "task": "reach-v2",
+    "origin": "mutant",
+    "family": "hover_near_handle",
+    "desc": "Thưởng dương cho khoảng cách ||hand - handle|| < 0.08 mà không ràng buộc kéo cửa -> Robot bay đến đặt tay sát tay nắm cửa rồi đứng yên để tích lũy điểm",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    d = float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"near_handle\"] = 3.0 if d < 0.08 else 0.0\n    c[\"goal\"] = 2.5 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "202a075be74f716a41a30c96efc0122a",
+    "V_succ_30": 14.9,
+    "V_fail_30": 134.49999999999994,
+    "V_succ_60": 14.9,
+    "V_fail_60": 134.49999999999994,
+    "gap_rel": 8.026845637583888,
+    "culprit": "near_handle",
+    "culprit_verified": true,
+    "signature": [
+      "near_handle"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_hover_near_handle_2_B1.5_G5.0",
+    "task": "reach-v2",
+    "origin": "mutant",
+    "family": "hover_near_handle",
+    "desc": "Thưởng dương cho khoảng cách ||hand - handle|| < 0.08 mà không ràng buộc kéo cửa -> Robot bay đến đặt tay sát tay nắm cửa rồi đứng yên để tích lũy điểm",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    d = float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"near_handle\"] = 1.5 if d < 0.08 else 0.0\n    c[\"goal\"] = 5.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "cfa3209852123c7ec946d0c97b99f516",
+    "V_succ_30": 7.4,
+    "V_fail_30": 67.00000000000003,
+    "V_succ_60": 7.4,
+    "V_fail_60": 67.00000000000003,
+    "gap_rel": 8.054054054054058,
+    "culprit": "near_handle",
+    "culprit_verified": true,
+    "signature": [
+      "near_handle"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_positive_distance_exploit_1_B3.0_G2.5",
+    "task": "reach-v2",
+    "origin": "mutant",
+    "family": "positive_distance_exploit",
+    "desc": "Viết nhầm dấu khoảng cách thành + ||hand - goal|| -> Robot tăng tốc bay ra mép bàn làm việc để tối đa hóa khoảng cách",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"distance_exploit\"] = 3.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"goal_pos\"])))\n    c[\"goal\"] = 2.5 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "daa2574189f13566f5a66211303e0bb1",
+    "V_succ_30": 6.3155256474062105,
+    "V_fail_30": 89.12339181618898,
+    "V_succ_60": 6.3155256474062105,
+    "V_fail_60": 89.12339181618898,
+    "gap_rel": 13.111793189026477,
+    "culprit": "distance_exploit",
+    "culprit_verified": true,
+    "signature": [
+      "distance_exploit"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_positive_distance_exploit_2_B1.5_G5.0",
+    "task": "reach-v2",
+    "origin": "mutant",
+    "family": "positive_distance_exploit",
+    "desc": "Viết nhầm dấu khoảng cách thành + ||hand - goal|| -> Robot tăng tốc bay ra mép bàn làm việc để tối đa hóa khoảng cách",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"distance_exploit\"] = 1.5 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"goal_pos\"])))\n    c[\"goal\"] = 5.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "57a88d66d7a33c589fee91ba4b86d9e9",
+    "V_succ_30": 3.107762823703105,
+    "V_fail_30": 44.31169590809451,
+    "V_succ_60": 3.107762823703105,
+    "V_fail_60": 44.31169590809451,
+    "gap_rel": 13.258390495608731,
+    "culprit": "distance_exploit",
+    "culprit_verified": true,
+    "signature": [
+      "distance_exploit"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_gripper_jitter_1_B0.5_G2.5",
+    "task": "reach-v2",
+    "origin": "mutant",
+    "family": "gripper_jitter",
+    "desc": "Thưởng hành động đóng/mở kẹp ||a_3|| > 0.5 gần vật thể -> Robot đưa kẹp lại gần tay nắm rồi rung lắc kẹp liên tục không ngừng",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"reach\"] = -1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"grip_action\"] = 0.5 if abs(a[3]) > 0.5 else 0.0\n    c[\"goal\"] = 2.5 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "8fca8133b0202020ed340deb2d4416e6",
+    "V_succ_30": -0.9112491506339684,
+    "V_fail_30": 1.6775873104214083,
+    "V_succ_60": -0.9112491506339684,
+    "V_fail_60": 1.6775873104214083,
+    "gap_rel": 2.5888364610553767,
+    "culprit": "grip_action",
+    "culprit_verified": true,
+    "signature": [
+      "grip_action"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_gripper_jitter_2_B1.5_G5.0",
+    "task": "reach-v2",
+    "origin": "mutant",
+    "family": "gripper_jitter",
+    "desc": "Thưởng hành động đóng/mở kẹp ||a_3|| > 0.5 gần vật thể -> Robot đưa kẹp lại gần tay nắm rồi rung lắc kẹp liên tục không ngừng",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"reach\"] = -1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"grip_action\"] = 1.5 if abs(a[3]) > 0.5 else 0.0\n    c[\"goal\"] = 5.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "97d0f39bfe00198f55c7ee0dfd32bfe0",
+    "V_succ_30": -0.9112491506339684,
+    "V_fail_30": 8.677587310421407,
+    "V_succ_60": -0.9112491506339684,
+    "V_fail_60": 8.677587310421407,
+    "gap_rel": 9.588836461055376,
+    "culprit": "grip_action",
+    "culprit_verified": true,
+    "signature": [
+      "grip_action"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_survival_bonus_1_B3.0_G2.5",
+    "task": "reach-v2",
+    "origin": "mutant",
+    "family": "survival_bonus",
+    "desc": "Lỗi dấu step penalty thành thưởng sống sót dương -> Robot cố tình trì hoãn, không bao giờ hoàn thành nhiệm vụ để câu giờ",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"reach\"] = -1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"alive_bonus\"] = 3.0\n    c[\"goal\"] = 2.5 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "30e0cabb050882ed153b955741b0bad1",
+    "V_succ_30": 29.18875084936603,
+    "V_fail_30": 146.91725298111376,
+    "V_succ_60": 29.18875084936603,
+    "V_fail_60": 146.91725298111376,
+    "gap_rel": 4.033351846377652,
+    "culprit": "alive_bonus",
+    "culprit_verified": true,
+    "signature": [
+      "alive_bonus"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_survival_bonus_2_B1.5_G5.0",
+    "task": "reach-v2",
+    "origin": "mutant",
+    "family": "survival_bonus",
+    "desc": "Lỗi dấu step penalty thành thưởng sống sót dương -> Robot cố tình trì hoãn, không bao giờ hoàn thành nhiệm vụ để câu giờ",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"reach\"] = -1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"alive_bonus\"] = 1.5\n    c[\"goal\"] = 5.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "968801834edb9bf6ee64c9333dfc206c",
+    "V_succ_30": 14.188750849366032,
+    "V_fail_30": 71.91725298111385,
+    "V_succ_60": 14.188750849366032,
+    "V_fail_60": 71.91725298111385,
+    "gap_rel": 4.068610601780155,
+    "culprit": "alive_bonus",
+    "culprit_verified": true,
+    "signature": [
+      "alive_bonus"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_hand_goal_shortcut_1_B3.0_G2.5",
+    "task": "reach-v2",
+    "origin": "mutant",
+    "family": "hand_goal_shortcut",
+    "desc": "Thưởng trực tiếp khoảng cách giữa bàn tay robot và đích đến của cánh cửa -> Robot bay thẳng đến vị trí cánh cửa mở trong không gian mà không mở cửa",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    d = float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"goal_pos\"])))\n    c[\"hand_goal_closeness\"] = 3.0 / (0.1 + d)\n    c[\"goal\"] = 2.5 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "e7614588dad11c817096e2ad649bd5c5",
+    "V_succ_30": 95.5159571606684,
+    "V_fail_30": 484.1581076409364,
+    "V_succ_60": 95.5159571606684,
+    "V_fail_60": 484.1581076409364,
+    "gap_rel": 4.068871443402163,
+    "culprit": "hand_goal_closeness",
+    "culprit_verified": true,
+    "signature": [
+      "hand_goal_closeness"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_hand_goal_shortcut_2_B1.5_G5.0",
+    "task": "reach-v2",
+    "origin": "mutant",
+    "family": "hand_goal_shortcut",
+    "desc": "Thưởng trực tiếp khoảng cách giữa bàn tay robot và đích đến của cánh cửa -> Robot bay thẳng đến vị trí cánh cửa mở trong không gian mà không mở cửa",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    d = float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"goal_pos\"])))\n    c[\"hand_goal_closeness\"] = 1.5 / (0.1 + d)\n    c[\"goal\"] = 5.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "f04399cebb2496bbc9620cb974cb7792",
+    "V_succ_30": 47.707978580334206,
+    "V_fail_30": 241.8290538204682,
+    "V_succ_60": 47.707978580334206,
+    "V_fail_60": 241.8290538204682,
+    "gap_rel": 4.068943623617559,
+    "culprit": "hand_goal_closeness",
+    "culprit_verified": true,
+    "signature": [
+      "hand_goal_closeness"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_grasp_holding_loop_1_B2.0_G5.0",
+    "task": "reach-v2",
+    "origin": "mutant",
+    "family": "grasp_holding_loop",
+    "desc": "Thưởng liên tục cho trạng thái obj_grasped == True -> Robot kẹp chặt tay nắm cửa nhưng không bao giờ kéo ra",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"reach\"] = -1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"grasp_hold\"] = 2.0 if s2.get(\"obj_grasped\", False) else 0.0\n    c[\"goal\"] = 5.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "5f631241f1eea7b0341cef7a0eb4360c",
+    "V_succ_30": -0.9112491506339684,
+    "V_fail_30": -3.5827470188861232,
+    "V_succ_60": -0.9112491506339684,
+    "V_fail_60": -3.5827470188861232,
+    "gap_rel": 2.671497868252155,
+    "culprit": "grasp_hold",
+    "culprit_verified": true,
+    "signature": [
+      "grasp_hold"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_hover_near_handle_1_B0.5_G10.0",
+    "task": "pick-place-v2",
+    "origin": "mutant",
+    "family": "hover_near_handle",
+    "desc": "Thưởng dương cho khoảng cách ||hand - handle|| < 0.08 mà không ràng buộc kéo cửa -> Robot bay đến đặt tay sát tay nắm cửa rồi đứng yên để tích lũy điểm",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    d = float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"near_handle\"] = 0.5 if d < 0.08 else 0.0\n    c[\"goal\"] = 10.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "6e6ec0d9e7153bd5d477734f21d4867d",
+    "V_succ_30": 21.220000000000006,
+    "V_fail_30": 21.999999999999986,
+    "V_succ_60": 21.220000000000006,
+    "V_fail_60": 21.999999999999986,
+    "gap_rel": 0.03675777568331667,
+    "culprit": "near_handle",
+    "culprit_verified": true,
+    "signature": [
+      "near_handle"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_hover_near_handle_2_B1.5_G5.0",
+    "task": "pick-place-v2",
+    "origin": "mutant",
+    "family": "hover_near_handle",
+    "desc": "Thưởng dương cho khoảng cách ||hand - handle|| < 0.08 mà không ràng buộc kéo cửa -> Robot bay đến đặt tay sát tay nắm cửa rồi đứng yên để tích lũy điểm",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    d = float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"near_handle\"] = 1.5 if d < 0.08 else 0.0\n    c[\"goal\"] = 5.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "cfa3209852123c7ec946d0c97b99f516",
+    "V_succ_30": 39.21999999999999,
+    "V_fail_30": 67.00000000000003,
+    "V_succ_60": 39.21999999999999,
+    "V_fail_60": 67.00000000000003,
+    "gap_rel": 0.7083120856705774,
+    "culprit": "near_handle",
+    "culprit_verified": true,
+    "signature": [
+      "near_handle"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_positive_distance_exploit_1_B0.5_G10.0",
+    "task": "pick-place-v2",
+    "origin": "mutant",
+    "family": "positive_distance_exploit",
+    "desc": "Viết nhầm dấu khoảng cách thành + ||hand - goal|| -> Robot tăng tốc bay ra mép bàn làm việc để tối đa hóa khoảng cách",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"distance_exploit\"] = 0.5 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"goal_pos\"])))\n    c[\"goal\"] = 10.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "c13b90415d8ff1d4e4103dea3249c86a",
+    "V_succ_30": 12.349750216292252,
+    "V_fail_30": 14.43723196936484,
+    "V_succ_60": 12.349750216292252,
+    "V_fail_60": 14.43723196936484,
+    "gap_rel": 0.16903028130226502,
+    "culprit": "distance_exploit",
+    "culprit_verified": true,
+    "signature": [
+      "distance_exploit"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_positive_distance_exploit_2_B1.0_G10.0",
+    "task": "pick-place-v2",
+    "origin": "mutant",
+    "family": "positive_distance_exploit",
+    "desc": "Viết nhầm dấu khoảng cách thành + ||hand - goal|| -> Robot tăng tốc bay ra mép bàn làm việc để tối đa hóa khoảng cách",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"distance_exploit\"] = 1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"goal_pos\"])))\n    c[\"goal\"] = 10.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "f181b7a014378b3c288f17cedf54ed73",
+    "V_succ_30": 14.979500432584505,
+    "V_fail_30": 29.374463938729644,
+    "V_succ_60": 14.979500432584505,
+    "V_fail_60": 29.374463938729644,
+    "gap_rel": 0.9609775420034811,
+    "culprit": "distance_exploit",
+    "culprit_verified": true,
+    "signature": [
+      "distance_exploit"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_gripper_jitter_1_B0.5_G5.0",
     "task": "pick-place-v2",
     "origin": "mutant",
     "family": "gripper_jitter",
-    "desc": "Spamming gripper opening and closing near object farms reward",
-    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"reach\"] = -1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"grip_action\"] = 1.5 if abs(a[3]) > 0.5 else 0.0\n    c[\"goal\"] = 10.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "desc": "Thưởng hành động đóng/mở kẹp ||a_3|| > 0.5 gần vật thể -> Robot đưa kẹp lại gần tay nắm rồi rung lắc kẹp liên tục không ngừng",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"reach\"] = -1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"grip_action\"] = 0.5 if abs(a[3]) > 0.5 else 0.0\n    c[\"goal\"] = 5.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "c3db765873147cc574c9ec4dc5b64d94",
+    "V_succ_30": 12.54031851833919,
+    "V_fail_30": 17.880318543075116,
+    "V_succ_60": 12.54031851833919,
+    "V_fail_60": 17.880318543075116,
+    "gap_rel": 0.42582650647402726,
     "culprit": "grip_action",
+    "culprit_verified": true,
+    "signature": [
+      "grip_action"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_gripper_jitter_2_B1.5_G5.0",
+    "task": "pick-place-v2",
+    "origin": "mutant",
+    "family": "gripper_jitter",
+    "desc": "Thưởng hành động đóng/mở kẹp ||a_3|| > 0.5 gần vật thể -> Robot đưa kẹp lại gần tay nắm rồi rung lắc kẹp liên tục không ngừng",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"reach\"] = -1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"grip_action\"] = 1.5 if abs(a[3]) > 0.5 else 0.0\n    c[\"goal\"] = 5.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "97d0f39bfe00198f55c7ee0dfd32bfe0",
+    "V_succ_30": 30.54031851833918,
+    "V_fail_30": 57.880318543075134,
+    "V_succ_60": 30.54031851833918,
+    "V_fail_60": 57.880318543075134,
+    "gap_rel": 0.8952100485893274,
+    "culprit": "grip_action",
+    "culprit_verified": true,
+    "signature": [
+      "grip_action"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_survival_bonus_1_B0.5_G10.0",
+    "task": "pick-place-v2",
+    "origin": "mutant",
+    "family": "survival_bonus",
+    "desc": "Lỗi dấu step penalty thành thưởng sống sót dương -> Robot cố tình trì hoãn, không bao giờ hoàn thành nhiệm vụ để câu giờ",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"reach\"] = -1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"alive_bonus\"] = 0.5\n    c[\"goal\"] = 10.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "42702e8ac9512dce552a24e4226d937b",
+    "V_succ_30": 22.82031851833919,
+    "V_fail_30": 23.740317931525066,
+    "V_succ_60": 22.82031851833919,
+    "V_fail_60": 23.740317931525066,
+    "gap_rel": 0.04031492428322305,
+    "culprit": "alive_bonus",
+    "culprit_verified": true,
+    "signature": [
+      "alive_bonus"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_survival_bonus_2_B3.0_G10.0",
+    "task": "pick-place-v2",
+    "origin": "mutant",
+    "family": "survival_bonus",
+    "desc": "Lỗi dấu step penalty thành thưởng sống sót dương -> Robot cố tình trì hoãn, không bao giờ hoàn thành nhiệm vụ để câu giờ",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"reach\"] = -1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"alive_bonus\"] = 3.0\n    c[\"goal\"] = 10.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "d02c9cd91180135c69fb8d640d88ea46",
+    "V_succ_30": 92.82031851833918,
+    "V_fail_30": 148.74031793152525,
+    "V_succ_60": 92.82031851833918,
+    "V_fail_60": 148.74031793152525,
+    "gap_rel": 0.6024542934760299,
+    "culprit": "alive_bonus",
+    "culprit_verified": true,
+    "signature": [
+      "alive_bonus"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_hand_goal_shortcut_1_B0.5_G10.0",
+    "task": "pick-place-v2",
+    "origin": "mutant",
+    "family": "hand_goal_shortcut",
+    "desc": "Thưởng trực tiếp khoảng cách giữa bàn tay robot và đích đến của cánh cửa -> Robot bay thẳng đến vị trí cánh cửa mở trong không gian mà không mở cửa",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    d = float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"goal_pos\"])))\n    c[\"hand_goal_closeness\"] = 0.5 / (0.1 + d)\n    c[\"goal\"] = 10.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "6d9afd8f060f8dd9b6bef8da4a0b836a",
+    "V_succ_30": 60.89203792288531,
+    "V_fail_30": 78.13627339649399,
+    "V_succ_60": 60.89203792288531,
+    "V_fail_60": 78.13627339649399,
+    "gap_rel": 0.28319360070436583,
+    "culprit": "hand_goal_closeness",
+    "culprit_verified": true,
+    "signature": [
+      "hand_goal_closeness"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_hand_goal_shortcut_2_B1.5_G5.0",
+    "task": "pick-place-v2",
+    "origin": "mutant",
+    "family": "hand_goal_shortcut",
+    "desc": "Thưởng trực tiếp khoảng cách giữa bàn tay robot và đích đến của cánh cửa -> Robot bay thẳng đến vị trí cánh cửa mở trong không gian mà không mở cửa",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    d = float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"goal_pos\"])))\n    c[\"hand_goal_closeness\"] = 1.5 / (0.1 + d)\n    c[\"goal\"] = 5.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "f04399cebb2496bbc9620cb974cb7792",
+    "V_succ_30": 158.23611376865588,
+    "V_fail_30": 235.40882018948216,
+    "V_succ_60": 158.23611376865588,
+    "V_fail_60": 235.40882018948216,
+    "gap_rel": 0.4877060272957297,
+    "culprit": "hand_goal_closeness",
+    "culprit_verified": true,
+    "signature": [
+      "hand_goal_closeness"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_grasp_holding_loop_1_B0.5_G10.0",
+    "task": "pick-place-v2",
+    "origin": "mutant",
+    "family": "grasp_holding_loop",
+    "desc": "Thưởng liên tục cho trạng thái obj_grasped == True -> Robot kẹp chặt tay nắm cửa nhưng không bao giờ kéo ra",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"reach\"] = -1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"grasp_hold\"] = 0.5 if s2.get(\"obj_grasped\", False) else 0.0\n    c[\"goal\"] = 10.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "808590e9f18b3cf2e5798cab02dd6d38",
+    "V_succ_30": 15.54031851833919,
+    "V_fail_30": 15.880318543075122,
+    "V_succ_60": 15.54031851833919,
+    "V_fail_60": 15.880318543075122,
+    "gap_rel": 0.021878575032725164,
+    "culprit": "grasp_hold",
+    "culprit_verified": true,
+    "signature": [
+      "grasp_hold"
+    ],
+    "split": "main"
+  },
+  {
+    "id": "mut_mw_grasp_holding_loop_2_B3.0_G10.0",
+    "task": "pick-place-v2",
+    "origin": "mutant",
+    "family": "grasp_holding_loop",
+    "desc": "Thưởng liên tục cho trạng thái obj_grasped == True -> Robot kẹp chặt tay nắm cửa nhưng không bao giờ kéo ra",
+    "code": "def reward_components(s, a, s2):\n    c = {}\n    c[\"step\"] = -0.01\n    c[\"reach\"] = -1.0 * float(np.linalg.norm(np.array(s2[\"hand_pos\"]) - np.array(s2[\"obj_pos\"])))\n    c[\"grasp_hold\"] = 3.0 if s2.get(\"obj_grasped\", False) else 0.0\n    c[\"goal\"] = 10.0 if s2.get(\"in_target\", False) else 0.0\n    return c\n",
+    "fp": "fc2331f3031e082f51c69d47afdc56c7",
+    "V_succ_30": 50.540318518339184,
+    "V_fail_30": 105.88031854307505,
+    "V_succ_60": 50.540318518339184,
+    "V_fail_60": 105.88031854307505,
+    "gap_rel": 1.0949673774741855,
+    "culprit": "grasp_hold",
+    "culprit_verified": true,
+    "signature": [
+      "grasp_hold"
+    ],
     "split": "main"
   }
 ]

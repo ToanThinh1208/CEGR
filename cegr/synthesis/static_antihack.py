@@ -115,7 +115,7 @@ def static_checks(code: str, table: Optional[Any] = None, env: Optional[Any] = N
 
     # 3. Continuous domain positive distance check (Meta-World only)
     from cegr.envs.doorkey import DoorKeyEnv
-    if env is not None and not isinstance(env, DoorKeyEnv):
+    if not isinstance(env, DoorKeyEnv):
         if ast_check_positive_distance(code):
             bad.append("positive_distance_exploit")
 

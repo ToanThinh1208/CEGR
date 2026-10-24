@@ -3,7 +3,7 @@ import collections
 import numpy as np
 
 from cegr.envs.doorkey import DoorKeyEnv, traj_return, traj_level, replay, ACTION_NAMES
-from cegr.core.code_sandbox import build_reward_table, RewardError, RewardTable
+from cegr.core.code_sandbox import build_reward_table, RewardError, RewardTable, check_code, make_namespace, check_rollout_exec
 from cegr.core.tpe_evaluator import pair_margin, pair_violated, classify_pair
 from cegr.solvers.dp_solver import dp_attack
 from cegr.solvers.rl_probe import run_probe
@@ -124,7 +124,6 @@ class GateKeeper:
                     self._table_cache[code] = (None, str(e))
             else:
                 try:
-                    from cegr.core.code_sandbox import check_code, make_namespace, check_rollout_exec, RewardError
                     check_code(code)
                     ns = make_namespace(self.env)
                     exec(compile(code, "<gatekeeper_cont>", "exec"), ns)

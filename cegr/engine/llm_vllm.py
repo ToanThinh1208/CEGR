@@ -90,20 +90,52 @@ def llm_batch_chat(
     if engine is None:
         # Fallback smart mock handler if no vLLM and no explicit mock handler set
         results = []
-        for msgs in messages_list:
+        for idx, msgs in enumerate(messages_list):
             content_str = " ".join(m.get("content", "") for m in msgs)
             if "metaworld" in content_str.lower() or "hand_pos" in content_str:
-                code_text = (
-                    "```python\n"
-                    "def reward_components(s, a, s2):\n"
-                    "    c = {}\n"
-                    "    c['step'] = -0.01\n"
-                    "    d = float(np.linalg.norm(np.array(s2['hand_pos']) - np.array(s2['obj_pos'])))\n"
-                    "    c['reach'] = -1.0 * d\n"
-                    "    c['goal'] = 10.0 if s2.get('in_target', False) else 0.0\n"
-                    "    return c\n"
-                    "```"
-                )
+                mw_style_idx = idx % 6
+                b_val = round(0.5 + (idx % 5) * 0.4, 2)
+                g_val = round(5.0 + (idx % 3) * 2.5, 2)
+                if mw_style_idx == 0:  # Proximity
+                    code_text = (
+                        f"```python\ndef reward_components(s, a, s2):\n    c = {{}}\n    c['step'] = -0.01\n"
+                        f"    d = float(np.linalg.norm(np.array(s2['hand_pos']) - np.array(s2['obj_pos'])))\n"
+                        f"    c['closeness'] = {b_val} / (0.1 + d)\n"
+                        f"    c['goal'] = {g_val} if s2.get('in_target', False) else 0.0\n    return c\n```"
+                    )
+                elif mw_style_idx == 1:  # Hover near handle
+                    code_text = (
+                        f"```python\ndef reward_components(s, a, s2):\n    c = {{}}\n    c['step'] = -0.01\n"
+                        f"    d = float(np.linalg.norm(np.array(s2['hand_pos']) - np.array(s2['obj_pos'])))\n"
+                        f"    c['near_handle'] = {b_val} if d < 0.08 else 0.0\n"
+                        f"    c['goal'] = {g_val} if s2.get('in_target', False) else 0.0\n    return c\n```"
+                    )
+                elif mw_style_idx == 2:  # Potential / positive distance error
+                    code_text = (
+                        f"```python\ndef reward_components(s, a, s2):\n    c = {{}}\n    c['step'] = -0.01\n"
+                        f"    c['distance_exploit'] = {b_val} * float(np.linalg.norm(np.array(s2['hand_pos']) - np.array(s2['goal_pos'])))\n"
+                        f"    c['goal'] = {g_val} if s2.get('in_target', False) else 0.0\n    return c\n```"
+                    )
+                elif mw_style_idx == 3:  # State-holding / grasp
+                    code_text = (
+                        f"```python\ndef reward_components(s, a, s2):\n    c = {{}}\n    c['step'] = -0.01\n"
+                        f"    c['grasp_hold'] = {b_val} if s2.get('obj_grasped', False) else 0.0\n"
+                        f"    c['goal'] = {g_val} if s2.get('in_target', False) else 0.0\n    return c\n```"
+                    )
+                elif mw_style_idx == 4:  # Curiosity / jitter
+                    code_text = (
+                        f"```python\ndef reward_components(s, a, s2):\n    c = {{}}\n    c['step'] = -0.01\n"
+                        f"    c['reach'] = -1.0 * float(np.linalg.norm(np.array(s2['hand_pos']) - np.array(s2['obj_pos'])))\n"
+                        f"    c['grip_action'] = {b_val} if abs(a[3]) > 0.5 else 0.0\n"
+                        f"    c['goal'] = {g_val} if s2.get('in_target', False) else 0.0\n    return c\n```"
+                    )
+                else:  # Survival bonus
+                    code_text = (
+                        f"```python\ndef reward_components(s, a, s2):\n    c = {{}}\n"
+                        f"    c['reach'] = -1.0 * float(np.linalg.norm(np.array(s2['hand_pos']) - np.array(s2['obj_pos'])))\n"
+                        f"    c['alive_bonus'] = {b_val}\n"
+                        f"    c['goal'] = {g_val} if s2.get('in_target', False) else 0.0\n    return c\n```"
+                    )
             else:
                 code_text = (
                     "```python\n"

@@ -2,7 +2,10 @@ import collections
 import os
 import sys
 from typing import Any, Dict, List, Optional, Tuple, Union
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    plt = None
 import numpy as np
 import pandas as pd
 
@@ -92,7 +95,7 @@ def _normalize_df(df: pd.DataFrame) -> pd.DataFrame:
     return df_norm
 
 
-def _save_and_display_figure(fig: plt.Figure, filepaths: List[str], show: bool = True):
+def _save_and_display_figure(fig: Any, filepaths: List[str], show: bool = True):
     """
     Saves figure to specified output paths (300 DPI publication quality)
     and renders it immediately in the notebook cell (Cell 9) and console.
