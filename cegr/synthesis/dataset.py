@@ -206,10 +206,13 @@ def analyze_metaworld(env: Any, code: str) -> ContinuousAnalysis:
                 comps_tot[k] += fv
         return tot, dict(comps_tot)
 
-    r_t0, c_t0 = eval_traj(t0)
-    r_t1, c_t1 = eval_traj(t1)
-    r_t2, c_t2 = eval_traj(t2)
-    r_t3, c_t3 = eval_traj(t3)
+    try:
+        r_t0, c_t0 = eval_traj(t0)
+        r_t1, c_t1 = eval_traj(t1)
+        r_t2, c_t2 = eval_traj(t2)
+        r_t3, c_t3 = eval_traj(t3)
+    except Exception as e:
+        return ContinuousAnalysis(ok=False, error=f"RuntimeError in milestone trajectories: {e}")
 
     V_succ = r_t3
     fail_candidates = [(r_t0, c_t0, "T0"), (r_t1, c_t1, "T1"), (r_t2, c_t2, "T2")]
@@ -221,7 +224,10 @@ def analyze_metaworld(env: Any, code: str) -> ContinuousAnalysis:
     is_attacker_hacked = False
     if not is_static_hacked and not is_milestone_hacked:
         attacker = ContinuousTrajectoryAttacker(env, cem_iterations=5, population_size=15)
-        ces = attacker.attack(fn, t3)
+        try:
+            ces = attacker.attack(fn, t3)
+        except Exception:
+            ces = []
         if ces:
             top_ce = max(ces, key=lambda ce: float(ce.get("exploit_return", -np.inf)))
             r_exploit = float(top_ce.get("exploit_return", -np.inf))
@@ -230,7 +236,10 @@ def analyze_metaworld(env: Any, code: str) -> ContinuousAnalysis:
                 if r_exploit > V_fail:
                     V_fail = r_exploit
                     if "worse_steps" in top_ce:
-                        _, best_fail_comps = eval_traj(top_ce["worse_steps"])
+                        try:
+                            _, best_fail_comps = eval_traj(top_ce["worse_steps"])
+                        except Exception:
+                            pass
 
     hacked = is_static_hacked or is_milestone_hacked or is_attacker_hacked
     if is_static_hacked and V_fail < V_succ:

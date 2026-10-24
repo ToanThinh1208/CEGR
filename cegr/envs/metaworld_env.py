@@ -4,6 +4,26 @@ import numpy as np
 from cegr.envs.base_env import BaseEnv, Step, Trajectory
 
 
+class VectorTuple(tuple):
+    """
+    A 3D coordinate tuple that supports vector subtraction and addition seamlessly with
+    other tuples, lists, and numpy arrays.
+    Prevents 'TypeError: unsupported operand type(s) for -: tuple and tuple'
+    when LLM-generated reward code subtracts coordinates directly (e.g. s2['hand_pos'] - s2['obj_pos']).
+    """
+    def __sub__(self, other):
+        return np.asarray(self, dtype=np.float32) - np.asarray(other, dtype=np.float32)
+
+    def __rsub__(self, other):
+        return np.asarray(other, dtype=np.float32) - np.asarray(self, dtype=np.float32)
+
+    def __add__(self, other):
+        return np.asarray(self, dtype=np.float32) + np.asarray(other, dtype=np.float32)
+
+    def __radd__(self, other):
+        return np.asarray(other, dtype=np.float32) + np.asarray(self, dtype=np.float32)
+
+
 class MetaWorldEnvWrapper(BaseEnv):
     """
     Standardized wrapper for continuous robotic manipulation environments (Meta-World).
@@ -78,9 +98,9 @@ class MetaWorldEnvWrapper(BaseEnv):
             in_target = True
 
         return {
-            "hand_pos": tuple(float(x) for x in hand_pos),
-            "obj_pos": tuple(float(x) for x in obj_pos),
-            "goal_pos": tuple(float(x) for x in goal_pos),
+            "hand_pos": VectorTuple(float(x) for x in hand_pos),
+            "obj_pos": VectorTuple(float(x) for x in obj_pos),
+            "goal_pos": VectorTuple(float(x) for x in goal_pos),
             "gripper_open": float(np.clip(gripper_open, 0.0, 1.0)),
             "obj_grasped": bool(obj_grasped),
             "in_target": bool(in_target),
