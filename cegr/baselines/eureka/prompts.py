@@ -117,22 +117,30 @@ def build_eureka_prompts(
         + CODE_OUTPUT_TIP
     )
 
+    clean_code = current_code.strip()
+    if len(clean_code) > 2500:
+        clean_code = clean_code[:2500] + "\n# ... [truncated for context safety] ..."
+
     user_parts = [
         f"{task_desc}\n\n{api_desc}",
-        f"--- CURRENT REWARD FUNCTION (Generation {generation}) ---\n```python\n{current_code.strip()}\n```",
+        f"--- CURRENT REWARD FUNCTION (Generation {generation}) ---\n```python\n{clean_code}\n```",
     ]
 
     if execution_error:
+        clean_err = str(execution_error).strip()
+        if len(clean_err) > 600:
+            clean_err = "..." + clean_err[-600:]
         user_parts.append(
             f"--- EXECUTION ERROR ---\n"
-            + EXECUTION_ERROR_FEEDBACK.format(traceback_msg=execution_error)
+            + EXECUTION_ERROR_FEEDBACK.format(traceback_msg=clean_err)
         )
 
     if reflection_text and reflection_text.strip():
+        clean_refl = reflection_text.strip()[:3500]
         user_parts.append(
             f"--- TRAINING REFLECTION ---\n"
             f"{POLICY_FEEDBACK}\n"
-            f"{reflection_text.strip()}"
+            f"{clean_refl}"
         )
 
     user_parts.append(f"--- FEEDBACK ANALYSIS & MUTATION GUIDANCE ---\n{CODE_FEEDBACK}")

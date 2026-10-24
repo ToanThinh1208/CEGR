@@ -128,9 +128,19 @@ def llm_batch_chat(
     from vllm import SamplingParams
 
     tokenizer = engine.get_tokenizer()
+
+    # Determine maximum allowed input tokens to guarantee no VLLMValidationError
+    model_max_len = 6144
+    if hasattr(engine, "llm_engine") and hasattr(engine.llm_engine, "model_config"):
+        model_max_len = getattr(engine.llm_engine.model_config, "max_model_len", 6144)
+    max_input_tokens = max(512, model_max_len - max_tokens - 32)
+
     prompts = []
     for msgs in messages_list:
         p = tokenizer.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
+        tok_ids = tokenizer.encode(p)
+        if len(tok_ids) > max_input_tokens:
+            p = tokenizer.decode(tok_ids[:max_input_tokens], skip_special_tokens=False)
         prompts.append(p)
 
     if seeds is not None and len(seeds) == len(prompts):

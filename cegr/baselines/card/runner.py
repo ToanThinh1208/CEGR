@@ -271,17 +271,28 @@ class CardRunner(BaseRunner):
                     tag = v.get("pair", {}).get("tag", "reference_pair")
                     seen_violations[tag] = v.get("pair")
 
-                feedback = generate_card_feedback(
+                cur_round_feedback = generate_card_feedback(
                     syntax_error=tpe_res["error"] if not tpe_res["ok"] else None,
                     tpe_violations=tpe_res["violations"],
                     succ_returns=tpe_res["succ_returns"],
                     fail_returns=tpe_res["fail_returns"],
                     succ_comps=tpe_res["succ_comps"],
                     fail_comps=tpe_res["fail_comps"],
-                    reflections_history=reflections_history if self.use_reflection_memory else None,
+                    reflections_history=None,
                 )
                 if self.use_reflection_memory:
-                    reflections_history.append(feedback)
+                    feedback = generate_card_feedback(
+                        syntax_error=tpe_res["error"] if not tpe_res["ok"] else None,
+                        tpe_violations=tpe_res["violations"],
+                        succ_returns=tpe_res["succ_returns"],
+                        fail_returns=tpe_res["fail_returns"],
+                        succ_comps=tpe_res["succ_comps"],
+                        fail_comps=tpe_res["fail_comps"],
+                        reflections_history=reflections_history,
+                    )
+                    reflections_history.append(cur_round_feedback)
+                else:
+                    feedback = cur_round_feedback
 
                 waves_log.append({
                     "round": rnd, "passed": False,

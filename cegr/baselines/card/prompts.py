@@ -21,8 +21,13 @@ def build_card_prompts(
         "Your task is to refine the reward function based on Process, Trajectory, and Preference feedback."
     )
 
+    clean_code = current_code.strip()
+    if len(clean_code) > 2500:
+        clean_code = clean_code[:2500] + "\n# ... [truncated for context safety] ..."
+
+    clean_feedback = feedback_text[:3500]
     reflection_section = format_self_reflection_prompt(
-        inference_results=feedback_text,
+        inference_results=clean_feedback,
         template=reflection_template,
     )
 
@@ -30,7 +35,7 @@ def build_card_prompts(
         f"{task_desc}\n\n"
         f"{api_desc}\n\n"
         f"--- CURRENT REWARD FUNCTION (Round {round_idx}) ---\n"
-        f"```python\n{current_code.strip()}\n```\n\n"
+        f"```python\n{clean_code}\n```\n\n"
         f"--- DYNAMIC FEEDBACK & SELF-REFLECTION ---\n"
         f"{reflection_section}\n\n"
         "REPAIR INSTRUCTIONS:\n"

@@ -21,10 +21,13 @@ def generate_card_feedback(
 
     # 1. Process Feedback
     if syntax_error:
+        err_msg = str(syntax_error).strip()
+        if len(err_msg) > 600:
+            err_msg = "..." + err_msg[-600:]
         blocks.append(
             f"=== PROCESS FEEDBACK ===\n"
             f"Execution Status: FAILED\n"
-            f"Error details: {syntax_error}\n"
+            f"Error details: {err_msg}\n"
             f"Ensure `def reward_components(s, a, s2) -> dict` returns a dictionary of finite floats without raising exceptions."
         )
         return "\n\n".join(blocks)
@@ -74,11 +77,15 @@ def generate_card_feedback(
 
     blocks.append("\n".join(pref_lines))
 
-    # Optional Memory Reflection (CARD_REFL mode)
+    # Optional Memory Reflection (CARD_REFL mode: concatenated feedback from round 0 to i-1)
     if reflections_history:
+        history_entries = []
+        for idx, refl in enumerate(reflections_history):
+            clean_refl = refl[:1000].strip()
+            history_entries.append(f"[Round {idx} Feedback History]\n{clean_refl}")
         blocks.append(
             "=== TEXT REFLECTION MEMORY (Concatenated Feedback from Past Rounds) ===\n" +
-            "\n\n".join(f"[Round {idx} Feedback History]\n{refl}" for idx, refl in enumerate(reflections_history))
+            "\n\n".join(history_entries)
         )
 
     return "\n\n".join(blocks)
