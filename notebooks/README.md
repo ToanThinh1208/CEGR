@@ -11,6 +11,7 @@ Thư mục này chứa các Jupyter Notebooks thực nghiệm được tổ ch�
 | **`doorkey5_benchmark.ipynb`**  | `doorkey5`              | 5x5             | `(30, 60)`                  | **Mức 1 - Môi trường chuẩn**: Kiểm chứng toàn diện khả năng sửa chữa và đối sánh với CARD & Eureka.                      |
 | **`doorkey6_benchmark.ipynb`**  | `doorkey6`              | 6x6             | `(40, 80)`                  | **Mức 2 - Mở rộng không gian**: Kiểm thử khả năng tổng quát hóa khi tăng kích thước phòng và vị trí cửa/chìa khóa.       |
 | **`doorkey8_benchmark.ipynb`**  | `doorkey8`              | 8x8             | `(60, 120)`                 | **Mức 3/4 - Không gian lớn**: Kiểm thử khả năng mở rộng (scalability) của bộ giải DP và độ bền bỉ của bộ sinh CE.        |
+| **`doorkey_ablation_benchmark.ipynb`** | `doorkey5,6,8`   | 5x5, 6x6, 8x8   | Tự động theo env            | **Giao thức Chạy lại Ablations (Mục 0-5)**: Chạy 3 môi trường trong 1 đợt, $N=20$, $R=3$, đối sánh ghép cặp CEGR vs 7 Ablations. |
 | **`metaworld_benchmark.ipynb`** | `metaworld`             | Liên tục        | `150`                       | **Điều khiển cánh tay robot liên tục**: Kiểm thử mở rộng CEGR trên các tác vụ Meta-World (Reach, Door Open, Pick-Place). |
 
 ---

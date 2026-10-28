@@ -139,6 +139,11 @@ class CegrRunner(BaseRunner):
             self.cfg["gates"] = [1, 2, 3, 5]
         elif self.method_name == "CEGR_noG5":
             self.cfg["gates"] = [1, 2, 3, 4]
+        elif self.method_name == "CEGR_noFeedback":
+            self.cfg["feedback"] = "none"
+            self.cfg["pool"] = False
+            self.cfg["anchors"] = "none"
+            self.cfg["experience"] = False
 
         if variant_cfg:
             self.cfg.update(variant_cfg)
@@ -158,10 +163,11 @@ class CegrRunner(BaseRunner):
     ) -> List[Dict[str, str]]:
         system = "You are an expert in reinforcement learning reward design and formal verification."
         blocks = [b for b in [self.task_desc, self.api_desc] if b]
-        if self.cfg.get("anchors") != "none":
-            blocks.append(anchors_mgr.render())
-        if self.cfg.get("experience") and experience:
-            blocks.append("LEARNED RULES FROM PAST FAILURES (apply them):\n" + "".join(f"  - {r}\n" for r in experience[-5:]))
+        if self.cfg.get("feedback") != "none":
+            if self.cfg.get("anchors") != "none":
+                blocks.append(anchors_mgr.render())
+            if self.cfg.get("experience") and experience:
+                blocks.append("LEARNED RULES FROM PAST FAILURES (apply them):\n" + "".join(f"  - {r}\n" for r in experience[-5:]))
 
         if not current_code:
             st = persona or "dense shaping combining step penalty, distance reduction to subgoals, and a bonus whenever the agent changes position or interacts with the door"
@@ -171,10 +177,17 @@ class CegrRunner(BaseRunner):
             )
         else:
             note = "" if wave <= 1 else f"[ROUND {wave}/{self.max_rounds} - the previous candidate still failed verification.]\n\n"
-            blocks.append(
-                f"{note}CURRENT REWARD CODE:\n```python\n{current_code.strip()}\n```\n\n"
-                f"VERIFIER FEEDBACK:\n{feedback[:4500]}\n{REPAIR_INSTRUCTION}"
-            )
+            if self.cfg.get("feedback") == "none":
+                # noFeedback: resample under same budget without feedback or failure hints
+                blocks.append(
+                    f"{note}CURRENT REWARD CODE:\n```python\n{current_code.strip()}\n```\n\n"
+                    f"Please improve this reward function to pass all verification requirements and achieve learnability.\n{REPAIR_INSTRUCTION}"
+                )
+            else:
+                blocks.append(
+                    f"{note}CURRENT REWARD CODE:\n```python\n{current_code.strip()}\n```\n\n"
+                    f"VERIFIER FEEDBACK:\n{feedback[:4500]}\n{REPAIR_INSTRUCTION}"
+                )
         return [{"role": "system", "content": system}, {"role": "user", "content": "\n\n".join(blocks)}]
 
     def run_single_job(self, reward_record: Dict[str, Any], sample_idx: int = 0) -> Dict[str, Any]:
